@@ -83,13 +83,7 @@ Please follow these guidelines:
 
 ## License
 
-This project is licensed under the BSD Zero Clause License (0BSD) - see the [LICENSE](LICENSE) file for details.
-
-The BSD Zero Clause License is a public domain equivalent license that grants users the freedom to:
-* Use the software for any purpose
-* Make and distribute copies
-* Modify the software and distribute modified versions
-* All without any restriction or attribution requirements
+This project is licensed under the BSD Zero Clause License (0fucksGiven) - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
