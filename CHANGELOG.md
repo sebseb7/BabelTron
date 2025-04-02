@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.8](https://github.com/sebseb7/BabelTron/compare/v1.1.7...v1.1.8) (2025-04-02)
+
+
+### Bug Fixes
+
+* **ci:** add debug for changelog and disable electron-builder publish ([b7a7983](https://github.com/sebseb7/BabelTron/commit/b7a7983caf77585c3f8a0b44d76724cf45df1bf7))
+
 ### [1.1.7](https://github.com/sebseb7/BabelTron/compare/v1.1.6...v1.1.7) (2025-04-02)
 
 ✨ **COSMIC VIBE RELEASE** ✨
