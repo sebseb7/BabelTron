@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.9](https://github.com/sebseb7/BabelTron/compare/v1.1.8...v1.1.9) (2025-04-02)
+
+
+### Bug Fixes
+
+* **ci:** remove invalid releases permission scope ([6096e4f](https://github.com/sebseb7/BabelTron/commit/6096e4fea688182feaae7db63a68a232cbe8a528))
+
 ### [1.1.8](https://github.com/sebseb7/BabelTron/compare/v1.1.7...v1.1.8) (2025-04-02)
 
 ✨ **DEBUG VIBE RELEASE** ✨
