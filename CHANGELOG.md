@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.12](https://github.com/sebseb7/BabelTron/compare/v1.1.11...v1.1.12) (2025-04-02)
+
+
+### Bug Fixes
+
+* **ci:** ✨ correct PowerShell syntax for version extraction ✨ ([9ac5a26](https://github.com/sebseb7/BabelTron/commit/9ac5a2613e3776755256bc3a7282bd80241eb1a4))
+* **ci:** ✨ specify Node.js version in package.json engines ✨ ([65210af](https://github.com/sebseb7/BabelTron/commit/65210af0d30ec4965c5c16d4b277eac9c933ba12))
+
 ### [1.1.11](https://github.com/sebseb7/BabelTron/compare/v1.1.10...v1.1.11) (2025-04-02)
 
 ✨ **ZEN MASTER RELEASE** ✨
