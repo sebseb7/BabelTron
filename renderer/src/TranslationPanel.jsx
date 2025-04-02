@@ -249,33 +249,13 @@ function TranslationPanel({
     }
   };
   
-  // TTS Synthesis when translation changes
+  // TTS Synthesis when translation prop changes
   useEffect(() => {
     if (translation && !isTranslating && !isLocalTranslating) {
-      // No override language - let synthesizeSpeech determine target language
+      // Auto-synthesize when a new translation comes in
       synthesizeSpeech(translation);
     }
-  }, [translation, isTranslating, isLocalTranslating, localDetectedLangCode]);
-  
-  // Watch for changes in detected language and re-synthesize if needed
-  useEffect(() => {
-    // Only re-synthesize if we have existing translation and the language changed
-    if (editableTranslation && localDetectedLangCode && !isTranslating && !isLocalTranslating) {
-      console.log(`Re-synthesizing TTS due to language change to: ${localDetectedLangCode}`);
-      
-      // Determine the correct language for synthesis
-      let ttsLanguageCode;
-      if (localDetectedLangCode === languageA && languageB !== 'detect') {
-        ttsLanguageCode = languageB;
-      } else if (localDetectedLangCode !== languageA) {
-        ttsLanguageCode = languageA;
-      } else {
-        ttsLanguageCode = languageB !== 'detect' ? languageB : languageA;
-      }
-      
-      synthesizeSpeech(editableTranslation, ttsLanguageCode);
-    }
-  }, [localDetectedLangCode, languageA, languageB]);
+  }, [translation, isTranslating, isLocalTranslating]); // Only depend on new translation arriving
 
   // Reset autoplay flag when URL changes
   useEffect(() => {
@@ -292,6 +272,7 @@ function TranslationPanel({
 
   // Handle autoplay when waveform becomes ready
   useEffect(() => {
+    // Check if autoplay is enabled *inside* the effect
     if (autoplayEnabled && ttsAudioUrl && isTtsWaveformReady && !isTtsPlaying && !hasAutoPlayed) {
       // Small delay to ensure the waveform is fully initialized
       const timeout = setTimeout(() => {
@@ -303,7 +284,7 @@ function TranslationPanel({
       
       return () => clearTimeout(timeout);
     }
-  }, [autoplayEnabled, ttsAudioUrl, isTtsWaveformReady, isTtsPlaying, hasAutoPlayed]);
+  }, [ttsAudioUrl, isTtsWaveformReady, isTtsPlaying, hasAutoPlayed]);
 
   // TTS Playback Handler
   const handleTtsPlayPause = useCallback(() => {

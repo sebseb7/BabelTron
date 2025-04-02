@@ -238,6 +238,59 @@ function App() {
     }
   }, [languageA, languageB]);
 
+  // --- Effect to Re-translate when Languages Change ---
+  useEffect(() => {
+    // Only run if we have a transcription and a detected language
+    if (transcription && detectedLanguageCode && detectedLanguageCode !== 'und' && detectedLanguageCode !== 'Error') {
+      console.log(`Language change detected. Checking for re-translation. A: ${languageA}, B: ${languageB}, Detected: ${detectedLanguageCode}`);
+      
+      let targetLangCode = null;
+      const sourceLangCode = detectedLanguageCode;
+
+      // Determine target based on *current* detected language and *new* A/B settings
+      if (sourceLangCode === languageA) {
+        if (languageB !== 'detect' && languageB !== sourceLangCode) {
+          targetLangCode = languageB;
+        }
+      } else { // sourceLangCode !== languageA
+        if (languageA !== sourceLangCode) {
+          targetLangCode = languageA;
+        }
+      }
+
+      if (targetLangCode) {
+        console.log(`Retranslating: ${sourceLangCode} -> ${targetLangCode}`);
+        setIsTranslating(true);
+        setTranslation('');
+        setTranslationError(null);
+
+        window.electronAPI.translateText(transcription, sourceLangCode, targetLangCode)
+          .then(translationResult => {
+            if (translationResult.error) {
+              setTranslationError(translationResult.error);
+              setTranslation('');
+            } else {
+              const translatedText = translationResult.translation || '';
+              setTranslation(translatedText);
+            }
+          })
+          .catch(translateErr => {
+            console.error("Re-translation Error:", translateErr);
+            setTranslationError(translateErr.message || "An unknown error occurred during re-translation.");
+            setTranslation('');
+          })
+          .finally(() => {
+            setIsTranslating(false);
+          });
+      } else {
+        console.log('No re-translation needed based on language change.');
+        // Optionally clear translation if languages make it invalid?
+        // setTranslation(''); 
+      }
+    }
+  // Depend on the languages and the source text itself
+  }, [languageA, languageB, transcription, detectedLanguageCode]);
+
   // --- Handler for Starting Recording ---
   const handleStartRecording = useCallback(async () => {
     if (!selectedDeviceId) {

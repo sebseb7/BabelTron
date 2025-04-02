@@ -576,26 +576,26 @@ function AudioRecorder({
           marginBottom: 2,
           paddingTop: 0
       }}>
-          {/* Record/Stop Buttons */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          {/* Button and Shortcut Hint */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {/* Unified Record/Stop Button */}
               <Button
                   variant="contained"
-                  color="secondary"
-                  startIcon={<MicIcon />}
-                  onClick={handleStartRecording}
-                  disabled={isRecording || !selectedDeviceId || isVoiceActivationEnabled}
+                  color={isRecording ? "error" : "secondary"}
+                  startIcon={isRecording ? <StopIcon /> : <MicIcon />}
+                  onClick={isRecording ? handleStopRecording : handleStartRecording}
+                  disabled={!isRecording && (!selectedDeviceId || isVoiceActivationEnabled)}
+                  sx={{ minWidth: 110, width: 110 }}
               >
-                  Record
+                  {isRecording ? 'Stop' : 'Record'}
               </Button>
-              <Button
-                  variant="contained"
-                  color="error"
-                  startIcon={<StopIcon />}
-                  onClick={handleStopRecording}
-                  disabled={!isRecording}
-              >
-                  Stop
-              </Button>
+              
+              {/* Shortcut Hint */}
+              {enableKeyboardShortcuts && (
+                  <Typography variant="caption" color="text.secondary">
+                      (Space)
+                  </Typography>
+              )}
           </Box>
           
           {/* Voice Activation Switch */}
