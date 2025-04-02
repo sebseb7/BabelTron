@@ -9,7 +9,7 @@
     "start": "npm run build:renderer && electron .",
     "dev": "concurrently \"npm run watch:renderer\" \"electron .\"",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack --mode production --config webpack.config.js && electron-builder --win",
+    "build": "webpack --mode production --config webpack.config.js && electron-builder --win --publish never",
     "release": "standard-version --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'",
     "build:prod-no-package": "webpack --mode production --config webpack.config.js"
   },

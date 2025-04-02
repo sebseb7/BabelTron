@@ -34,6 +34,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
 
+      - name: Echo Changelog Content # Debug Step
+        run: echo "${{ steps.changelog.outputs.changes }}"
+
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
