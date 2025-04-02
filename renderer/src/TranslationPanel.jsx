@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -13,6 +13,7 @@ import { getLanguageName } from './languages';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import WaveformDisplay from './WaveformDisplay';
+import { useTts } from './hooks/useTts'; // Import the hook
 
 function TranslationPanel({ 
   transcription, 
@@ -30,9 +31,10 @@ function TranslationPanel({
   const [editableTranscription, setEditableTranscription] = useState(transcription);
   const [editableTranslation, setEditableTranslation] = useState(translation);
   
-  const [ttsAudioUrl, setTtsAudioUrl] = useState(null);
-  const [isSynthesizing, setIsSynthesizing] = useState(false);
-  const [ttsError, setTtsError] = useState(null);
+  // Remove state managed by useTts hook
+  // const [ttsAudioUrl, setTtsAudioUrl] = useState(null);
+  // const [isSynthesizing, setIsSynthesizing] = useState(false);
+  // const [ttsError, setTtsError] = useState(null);
   const [isTtsWaveformReady, setIsTtsWaveformReady] = useState(false);
   const [isTtsPlaying, setIsTtsPlaying] = useState(false);
   const [autoplayEnabled, setAutoplayEnabled] = useState(true);
@@ -42,6 +44,22 @@ function TranslationPanel({
   const [localDetectedLangCode, setLocalDetectedLangCode] = useState('');
   
   const ttsWaveformDisplayRef = useRef(null);
+
+  // Determine target language for TTS based on context
+  const targetTtsLangCode = useMemo(() => {
+    if (localDetectedLangCode === languageA && languageB !== 'detect') {
+      return languageB;
+    } else if (localDetectedLangCode !== languageA) {
+      return languageA;
+    } else {
+      // Fallback if detection failed or languages are the same
+      // Prefer B if specified, otherwise A (avoiding 'detect')
+      return languageB !== 'detect' ? languageB : languageA;
+    }
+  }, [localDetectedLangCode, languageA, languageB]);
+
+  // Use the TTS hook
+  const { ttsAudioUrl, isSynthesizing, ttsError, synthesizeSpeech } = useTts();
   
   // Update local state when props change
   useEffect(() => {
@@ -132,71 +150,20 @@ function TranslationPanel({
       }
       
       console.log(`TTS for edited translation using language: ${ttsLanguageCode}`);
+      // Call synthesizeSpeech from the hook
       synthesizeSpeech(editableTranslation, ttsLanguageCode);
     }
-  }, [editableTranslation, translation, localDetectedLangCode, languageA, languageB]);
+  }, [editableTranslation, translation, localDetectedLangCode, languageA, languageB, synthesizeSpeech]);
   
-  // Function to synthesize speech
-  const synthesizeSpeech = async (textToSynthesize, overrideLanguageCode = null) => {
-    if (!textToSynthesize) return;
-    
-    setIsSynthesizing(true);
-    setTtsError(null);
-    setTtsAudioUrl(null);
-    
-    try {
-      // Use override language if provided, otherwise determine based on detected language
-      let ttsLanguageCode = overrideLanguageCode;
-      
-      if (!ttsLanguageCode) {
-        if (localDetectedLangCode === languageA && languageB !== 'detect') {
-          // If detected language is Language A, we translated TO Language B
-          ttsLanguageCode = languageB;
-        } else if (localDetectedLangCode !== languageA) {
-          // If detected language is NOT Language A, we translated TO Language A
-          ttsLanguageCode = languageA;
-        } else {
-          // Fallback case - use Language B or Language A if B is 'detect'
-          ttsLanguageCode = languageB !== 'detect' ? languageB : languageA;
-        }
-      }
-      
-      // Debug information to help diagnose language selection issues
-      console.log('Language selection details:');
-      console.log(`- Language A (languageA): ${languageA}`);
-      console.log(`- Language B (languageB): ${languageB}`);
-      console.log(`- Detected language (localDetectedLangCode): ${localDetectedLangCode}`);
-      console.log(`- Selected language for TTS (ttsLanguageCode): ${ttsLanguageCode}`);
-      console.log(`- Override language provided: ${overrideLanguageCode ? 'Yes' : 'No'}`);
-      console.log(`- Translation target: ${localDetectedLangCode === languageA ? 'TO Language B' : 'TO Language A'}`);
-      
-      // Make sure we pass the explicit ttsLanguageCode
-      const ttsResult = await window.electronAPI.synthesizeSpeech(textToSynthesize, ttsLanguageCode);
-      if (ttsResult.error) {
-        throw new Error(ttsResult.error);
-      }
-      
-      const ttsBlob = new Blob([ttsResult.audioData], { type: 'audio/mp3' });
-      const newTtsUrl = URL.createObjectURL(ttsBlob);
-      setTtsAudioUrl(newTtsUrl);
-      console.log('TTS audio generated:', newTtsUrl);
-    } catch (ttsErr) {
-      console.error('TTS Synthesis Error:', ttsErr);
-      setTtsError(ttsErr.message || 'Failed to synthesize speech.');
-      setTtsAudioUrl(null);
-    } finally {
-      setIsSynthesizing(false);
-    }
-  };
-  
-  // TTS Synthesis when translation prop changes
+  // TTS Synthesis when translation prop changes (AUTOMATIC)
   useEffect(() => {
-    if (translation && !isTranslating && !isLocalTranslating) {
-      // Auto-synthesize when a new translation comes in
-      synthesizeSpeech(translation);
+    if (translation && !isTranslating && !isLocalTranslating && targetTtsLangCode) {
+      console.log(`Auto-synthesizing new translation in ${targetTtsLangCode}`);
+      // Trigger synthesis via the hook
+      synthesizeSpeech(translation, targetTtsLangCode);
     }
-  }, [translation, isTranslating, isLocalTranslating]); // Only depend on new translation arriving
-
+  }, [translation, isTranslating, isLocalTranslating, targetTtsLangCode, synthesizeSpeech]);
+  
   // Refactored Handle autoplay when waveform becomes ready
   useEffect(() => {
     const waveformDisplay = ttsWaveformDisplayRef.current;
@@ -254,7 +221,7 @@ function TranslationPanel({
   }, []);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
       {/* Transcription TextField */}
       <TextField
         label={`Detected Language: ${localDetectedLangCode && localDetectedLangCode !== 'Error' ? getLanguageName(localDetectedLangCode) : '-'}`}
@@ -344,13 +311,14 @@ function TranslationPanel({
         {/* TTS Status Indicator Area (Error only) */}
         <Box sx={{ 
           position: 'absolute',
-          top: 0,
+          top: -8, // Position slightly above the button row
           left: 0,
           right: 0,
           zIndex: 1
         }}>
+          {/* Use error state from hook */}
           {ttsError && !isSynthesizing && (
-            <Alert severity="error" sx={{ width: '100%' }}>{`TTS Error: ${ttsError}`}</Alert>
+            <Alert severity="error" sx={{ width: '100%', padding: '2px 10px' }}>{`TTS Error: ${ttsError}`}</Alert>
           )}
         </Box>
 
