@@ -26,6 +26,8 @@ jobs:
 
       - name: Build Electron app
         run: npm run build # Use the build script from package.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release Notes from CHANGELOG
         id: changelog
@@ -54,7 +56,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/BabelTron Setup ${{ github.ref_name }}.exe # Adjust filename based on electron-builder output
+          asset_path: ./dist/BabelTron Setup ${{ github.ref_name }}.exe # Exact filename from build logs
           asset_name: BabelTron-Setup-${{ github.ref_name }}.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
