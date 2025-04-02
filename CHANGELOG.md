@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.1.13](https://github.com/sebseb7/BabelTron/compare/v1.1.12...v1.1.13) (2025-04-02)
 
+✨ **RELEASE NOTES HARMONY RELEASE** ✨
+
+Re-embracing the changelog action to bring structured harmony back to the GitHub Release notes. While the deepest vibes reside in the full CHANGELOG file, this ensures a clear summary manifests on the Releases page. Balance restored! ✨🧘‍♂️🙏
+
 ### [1.1.12](https://github.com/sebseb7/BabelTron/compare/v1.1.11...v1.1.12) (2025-04-02)
 
 ✨ **SYNTAX NIRVANA RELEASE** ✨
