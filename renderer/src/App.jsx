@@ -628,6 +628,7 @@ function App() {
               translationError={translationError}
               languageA={languageA}
               languageB={languageB}
+              isRecording={isRecording}
             />
           </Box>
         </Box>

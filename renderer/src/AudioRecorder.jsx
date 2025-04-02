@@ -10,12 +10,12 @@ import StopIcon from '@mui/icons-material/Stop';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import LinearProgress from '@mui/material/LinearProgress';
-import WaveSurfer from 'wavesurfer.js';
 import { LANGUAGES, getLanguageName } from './languages';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Slider from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
+import WaveformDisplay from './WaveformDisplay';
 
 function AudioRecorder({ 
   onTranscriptionStart, 
@@ -45,8 +45,7 @@ function AudioRecorder({
   const analyserRef = useRef(null);
   const sourceRef = useRef(null);
   const meterAnimationRef = useRef(null);
-  const waveformRef = useRef(null);
-  const wavesurferInstanceRef = useRef(null);
+  const waveformDisplayRef = useRef(null);
   const startTimeoutRef = useRef(null);
   const stopTimeoutRef = useRef(null);
 
@@ -64,9 +63,6 @@ function AudioRecorder({
       }
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close();
-      }
-      if (wavesurferInstanceRef.current) {
-          wavesurferInstanceRef.current.destroy();
       }
       clearTimeout(startTimeoutRef.current);
       clearTimeout(stopTimeoutRef.current);
@@ -265,74 +261,19 @@ function AudioRecorder({
   }, [isVoiceActivationEnabled]);
 
   const handlePlayPause = useCallback(() => {
-    if (wavesurferInstanceRef.current && isWaveformReady) { 
-        if (!isPlaying) {
-          // About to start playing - save and disable voice activation
-          setPreviousVoiceActivationState(isVoiceActivationEnabled);
-          if (isVoiceActivationEnabled) {
-            setIsVoiceActivationEnabled(false);
-          }
-        } else {
-          // Stopping playback - restore voice activation if it was enabled before
-          setIsVoiceActivationEnabled(previousVoiceActivationState);
-        }
-        
-        wavesurferInstanceRef.current.playPause();
-    }
-  }, [isWaveformReady, isPlaying, isVoiceActivationEnabled, previousVoiceActivationState]);
+    waveformDisplayRef.current?.playPause();
 
-  useEffect(() => {
-    console.log('Waveform useEffect running. audioUrl:', audioUrl);
-
-    if (audioUrl && waveformRef.current) {
-      console.log('Waveform useEffect: Creating/Recreating WaveSurfer instance.');
-      setIsWaveformReady(false);
-
-      if (wavesurferInstanceRef.current) {
-        wavesurferInstanceRef.current.destroy();
+    if (isPlaying) {
+      // About to start playing - save and disable voice activation
+      setPreviousVoiceActivationState(isVoiceActivationEnabled);
+      if (isVoiceActivationEnabled) {
+        setIsVoiceActivationEnabled(false);
       }
-      
-      wavesurferInstanceRef.current = WaveSurfer.create({
-        container: waveformRef.current,
-        waveColor: 'rgb(100, 180, 255)',
-        progressColor: 'rgb(0, 220, 255)',
-        url: audioUrl,
-        barWidth: 3, 
-        barGap: 2,
-        barRadius: 2,
-        height: 100,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-      });
-
-      wavesurferInstanceRef.current.on('ready', () => {
-        console.log('Waveform useEffect: WaveSurfer is ready!');
-        setIsWaveformReady(true);
-      });
-      wavesurferInstanceRef.current.on('error', (err) => {
-        console.error('Waveform useEffect: WaveSurfer error:', err);
-        setIsWaveformReady(false);
-      });
-
-      wavesurferInstanceRef.current.on('play', () => { setIsPlaying(true); });
-      wavesurferInstanceRef.current.on('pause', () => { setIsPlaying(false); });
-      wavesurferInstanceRef.current.on('finish', () => { 
-        wavesurferInstanceRef.current.seekTo(0);
-        setIsPlaying(false); 
-      });
-
     } else {
-      console.log('Waveform useEffect: No audioUrl or container, cleaning up.');
-      if (wavesurferInstanceRef.current) {
-        wavesurferInstanceRef.current.destroy();
-        wavesurferInstanceRef.current = null;
-      }
-      setIsWaveformReady(false);
+      // Stopping playback - restore voice activation if it was enabled before
+      setIsVoiceActivationEnabled(previousVoiceActivationState);
     }
-
-    return () => {
-        console.log('Waveform useEffect: Cleanup function running.');
-    };
-  }, [audioUrl]);
+  }, [isPlaying, isVoiceActivationEnabled, previousVoiceActivationState]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -442,7 +383,7 @@ function AudioRecorder({
   useEffect(() => {
     // When playback ends (isPlaying changes to false)
     if (!isPlaying && previousVoiceActivationState) {
-      // Small delay to ensure wavesurfer is done
+      // Small delay to ensure waveformDisplay is done
       const timer = setTimeout(() => {
         setIsVoiceActivationEnabled(previousVoiceActivationState);
       }, 100);
@@ -619,15 +560,16 @@ function AudioRecorder({
 
       {/* Waveform Section */}
       <Box sx={{ width: '90%', maxWidth: 600, marginBottom: 2, marginTop: 2 }}>
-          <Box ref={waveformRef} sx={{ 
-              width: '100%', 
-              height: '100px',
-              backgroundColor: 'rgba(30, 30, 30, 0.8)',
-              marginBottom: 2.5,
-              borderRadius: 1,
-          }} />
+          <WaveformDisplay 
+              ref={waveformDisplayRef}
+              audioUrl={audioUrl}
+              waveColor="rgb(100, 180, 255)"
+              progressColor="rgb(0, 220, 255)"
+              onReadyChange={setIsWaveformReady}
+              onPlayStateChange={setIsPlaying}
+          />
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 1, marginBottom: 2 }}>
               <Button
                   variant="contained"
                   color="primary"

@@ -9,10 +9,10 @@ import Typography from '@mui/material/Typography';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
-import WaveSurfer from 'wavesurfer.js';
 import { getLanguageName } from './languages';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import WaveformDisplay from './WaveformDisplay';
 
 function TranslationPanel({ 
   transcription, 
@@ -41,8 +41,7 @@ function TranslationPanel({
   // Local detected language code
   const [localDetectedLangCode, setLocalDetectedLangCode] = useState('');
   
-  const ttsWaveformRef = useRef(null);
-  const ttsWavesurferInstanceRef = useRef(null);
+  const ttsWaveformDisplayRef = useRef(null);
   
   // Update local state when props change
   useEffect(() => {
@@ -137,65 +136,6 @@ function TranslationPanel({
     }
   }, [editableTranslation, translation, localDetectedLangCode, languageA, languageB]);
   
-  // TTS WaveSurfer setup
-  useEffect(() => {
-    console.log('TTS Waveform useEffect running. ttsAudioUrl:', ttsAudioUrl);
-    setIsTtsWaveformReady(false);
-
-    if (ttsAudioUrl && ttsWaveformRef.current) {
-      console.log('TTS Waveform useEffect: Creating/Recreating TTS WaveSurfer instance.');
-      if (ttsWavesurferInstanceRef.current) {
-        ttsWavesurferInstanceRef.current.destroy();
-      }
-      
-      ttsWavesurferInstanceRef.current = WaveSurfer.create({
-        container: ttsWaveformRef.current,
-        waveColor: 'rgb(100, 255, 180)', // Mint green wave
-        progressColor: 'rgb(0, 200, 100)', // Darker green progress
-        url: ttsAudioUrl,
-        barWidth: 3, 
-        barGap: 2,
-        barRadius: 2,
-        height: 100,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)', // Subtle white background for contrast
-      });
-
-      ttsWavesurferInstanceRef.current.on('ready', () => {
-        console.log('TTS Waveform useEffect: TTS WaveSurfer is ready!');
-        setIsTtsWaveformReady(true); 
-      });
-      ttsWavesurferInstanceRef.current.on('error', (err) => {
-        console.error('TTS Waveform useEffect: TTS WaveSurfer error:', err);
-        setIsTtsWaveformReady(false);
-      });
-
-      ttsWavesurferInstanceRef.current.on('play', () => { setIsTtsPlaying(true); });
-      ttsWavesurferInstanceRef.current.on('pause', () => { setIsTtsPlaying(false); });
-      ttsWavesurferInstanceRef.current.on('finish', () => { 
-        ttsWavesurferInstanceRef.current.seekTo(0);
-        setIsTtsPlaying(false); 
-      });
-
-    } else {
-      console.log('TTS Waveform useEffect: No ttsAudioUrl or container, cleaning up.');
-      if (ttsWavesurferInstanceRef.current) {
-        ttsWavesurferInstanceRef.current.destroy();
-        ttsWavesurferInstanceRef.current = null;
-      }
-      setIsTtsWaveformReady(false); 
-    }
-
-    return () => {
-      console.log('TTS Waveform useEffect: Cleanup function running.');
-      if (ttsAudioUrl) {
-        URL.revokeObjectURL(ttsAudioUrl);
-      }
-      if (ttsWavesurferInstanceRef.current) {
-        ttsWavesurferInstanceRef.current.destroy();
-      }
-    };
-  }, [ttsAudioUrl]);
-
   // Function to synthesize speech
   const synthesizeSpeech = async (textToSynthesize, overrideLanguageCode = null) => {
     if (!textToSynthesize) return;
@@ -259,7 +199,7 @@ function TranslationPanel({
 
   // Refactored Handle autoplay when waveform becomes ready
   useEffect(() => {
-    const wavesurfer = ttsWavesurferInstanceRef.current;
+    const waveformDisplay = ttsWaveformDisplayRef.current;
     
     console.log('Autoplay Check Effect Triggered:',
       `Ready=${isTtsWaveformReady}`,
@@ -267,10 +207,10 @@ function TranslationPanel({
       `Enabled=${autoplayEnabled}`,
       `Recording=${isRecording}`,
       `Playing=${isTtsPlaying}`,
-      `Instance=${wavesurfer ? 'Exists' : 'None'}`
+      `Instance=${waveformDisplay ? 'Exists' : 'None'}`
     );
 
-    if (isTtsWaveformReady && wavesurfer && ttsAudioUrl) {
+    if (isTtsWaveformReady && waveformDisplay && ttsAudioUrl) {
       console.log('Autoplay: Waveform is Ready, Instance exists, URL exists.');
       
       // Check all conditions before attempting to play
@@ -279,12 +219,12 @@ function TranslationPanel({
 
       if (shouldAutoplay) {
         // Ensure we are at the beginning before playing
-        if (wavesurfer.getCurrentTime() === 0) {
+        if (waveformDisplay.getCurrentTime() === 0) {
           console.log('Autoplay: Conditions met and at start. Scheduling play...');
           // Use setTimeout to avoid potential race conditions or state update issues
           const playTimeout = setTimeout(() => {
             console.log('Autoplay: Timeout fired, attempting play...');
-            wavesurfer.play().catch(err => console.error('Autoplay: Error during play():', err));
+            waveformDisplay.play().catch(err => console.error('Autoplay: Error during play():', err));
           }, 100); // Small delay
           
           // Cleanup function for this specific effect instance
@@ -306,10 +246,8 @@ function TranslationPanel({
 
   // TTS Playback Handler
   const handleTtsPlayPause = useCallback(() => {
-    if (ttsWavesurferInstanceRef.current && isTtsWaveformReady) { 
-      ttsWavesurferInstanceRef.current.playPause();
-    }
-  }, [isTtsWaveformReady]);
+    ttsWaveformDisplayRef.current?.playPause();
+  }, []);
 
   const handleAutoplayChange = useCallback((event) => {
     setAutoplayEnabled(event.target.checked);
@@ -392,33 +330,14 @@ function TranslationPanel({
       />
 
       {/* TTS Waveform & Playback */}
-      <Box ref={ttsWaveformRef} sx={{ 
-        width: '100%', 
-        height: '100px',
-        backgroundColor: 'rgba(30, 30, 30, 0.8)',
-        marginTop: 0,
-        marginBottom: 0,
-        position: 'relative',
-        borderRadius: 1,
-      }}>
-        {isSynthesizing && (
-          <Box sx={{ 
-            position: 'absolute', 
-            top: 8,
-            right: 8, 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1, 
-            color: 'text.secondary', 
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            padding: '2px 8px',
-            borderRadius: 1
-          }}>
-            <CircularProgress size={16} color="success" />
-            <Typography variant="caption">Synthesizing...</Typography>
-          </Box>
-        )}
-      </Box>
+      <WaveformDisplay
+        ref={ttsWaveformDisplayRef}
+        audioUrl={ttsAudioUrl}
+        waveColor="rgb(100, 255, 180)"
+        progressColor="rgb(0, 200, 100)"
+        onReadyChange={setIsTtsWaveformReady}
+        onPlayStateChange={setIsTtsPlaying}
+      />
       
       {/* Container for play button and error indicator */}
       <Box sx={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
