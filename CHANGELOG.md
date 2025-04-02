@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.13](https://github.com/sebseb7/BabelTron/compare/v1.1.12...v1.1.13) (2025-04-02)
+
 ### [1.1.12](https://github.com/sebseb7/BabelTron/compare/v1.1.11...v1.1.12) (2025-04-02)
 
 ✨ **SYNTAX NIRVANA RELEASE** ✨
