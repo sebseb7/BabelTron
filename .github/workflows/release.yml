@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*.*.*' # Trigger on tags like v1.0.0
+    branches:
+      - sprit # Also trigger on pushes to the sprit branch
 
 permissions:
   contents: write
