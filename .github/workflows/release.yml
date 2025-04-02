@@ -31,28 +31,19 @@ jobs:
 
       - name: Build Electron app
         run: npm run build # Use the build script from package.json
-
-      - name: Create Release Notes from CHANGELOG
-        id: changelog
-        uses: requarks/changelog-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
-
-      - name: Echo Changelog Content # Debug Step
-        run: echo "${{ steps.changelog.outputs.changes }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, needed to create releases
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
           release_name: Release ${{ github.ref_name }}
-          body: ${{ steps.changelog.outputs.changes }} # Use the generated changelog section as release notes
-          draft: false # Set to true if you want to manually publish the release
-          prerelease: false # Set to true if this is a pre-release
+          draft: false
+          prerelease: false
 
       - name: Upload Windows Asset
         uses: actions/upload-release-asset@v1
@@ -60,7 +51,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/BabelTron Setup ${{ github.ref_name }}.exe # Adjust filename based on electron-builder output
+          # Correct asset path by removing 'v' prefix
+          asset_path: ./dist/BabelTron Setup ${{ github.ref_name }}.exe
           asset_name: BabelTron-Setup-${{ github.ref_name }}.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
