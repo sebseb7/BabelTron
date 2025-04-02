@@ -7,7 +7,7 @@ on:
 
 jobs:
   release:
-    runs-on: ubuntu-latest # Use Ubuntu for broader compatibility, can specify windows-latest or macos-latest if needed
+    runs-on: windows-latest # Changed from ubuntu-latest to windows-latest
 
     steps:
       - name: Checkout code
