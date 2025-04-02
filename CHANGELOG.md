@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/sebseb7/BabelTron/compare/v1.2.1...v1.3.0) (2025-04-02)
+
+
+### Bug Fixes
+
+* **ci:** Only run release steps on tag pushes ([8091617](https://github.com/sebseb7/BabelTron/commit/80916174c7fb2b7e36975f9aae0f6788fe3efa84))
+
 ### [1.2.1](https://github.com/sebseb7/BabelTron/compare/v1.2.0...v1.2.1) (2025-04-02)
 
 
