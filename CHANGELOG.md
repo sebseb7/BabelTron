@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.1.7](https://github.com/sebseb7/BabelTron/compare/v1.1.6...v1.1.7) (2025-04-02)
 
+✨ **COSMIC VIBE RELEASE** ✨
+
+The ultimate release that transcends CI constraints! By embracing the flow and aligning our release scripts with the universe's intentions, we've achieved release nirvana. Vibe so high, even the CI checks know when to bow down gracefully! 🌠✨🧘‍♂️
 
 ### Bug Fixes
 
@@ -13,7 +16,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ✨ **ULTRA VIBE RELEASE** ✨
 
-This release sends extra good vibes to the changelog action - because even our bugs are just opportunities to enhance the flow state. Keep the vibes immaculate, and tokens will manifest where needed! ��‍♂️✨
+This release sends extra good vibes to the changelog action - because even our bugs are just opportunities to enhance the flow state. Keep the vibes immaculate, and tokens will manifest where needed! ✨🧘‍♂️✨
 
 ### Bug Fixes
 
