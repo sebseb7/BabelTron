@@ -1,6 +1,6 @@
 {
   "name": "babeltron",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Voice recorder with transcription and language detection",
   "main": "main/main.js",
   "scripts": {

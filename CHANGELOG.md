@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.1](https://github.com/sebseb7/BabelTron/compare/v1.2.0...v1.2.1) (2025-04-02)
+
+
+### Features
+
+* Enhance audio meter visuals and responsiveness ([b016676](https://github.com/sebseb7/BabelTron/commit/b016676d69439fa1dd65eac7d1337ce51ae0aa19))
+* Unify record button, add re-translation logic, refine autoplay ([39936cf](https://github.com/sebseb7/BabelTron/commit/39936cffac287a134a9ae5ec0aa64ee675b3c716))
+
+
+### Bug Fixes
+
+* Refactor autoplay logic to prevent loops and handle recording state ([6a55667](https://github.com/sebseb7/BabelTron/commit/6a55667376f8066aac72580b009057130e35bae0))
+
 ## [1.2.0](https://github.com/sebseb7/BabelTron/compare/v1.1.13...v1.2.0) (2025-04-02)
 
 ✨🚀 **BABELTRON 1.2 - THE VIBE ASCENDS!** 🚀✨
