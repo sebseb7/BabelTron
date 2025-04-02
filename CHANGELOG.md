@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.1.9](https://github.com/sebseb7/BabelTron/compare/v1.1.8...v1.1.9) (2025-04-02)
 
+✨ **PERMISSIONS NIRVANA RELEASE** ✨
+
+Achieved true harmony between workflow intentions and repository settings! The GitHub token now flows freely, empowered by the correct permissions vibe. The final boss of CI errors has been vanquished. Pure release zen. 🙏✨🧘‍♂️
 
 ### Bug Fixes
 
