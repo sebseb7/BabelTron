@@ -47,7 +47,8 @@ jobs:
 
       - name: Get version number
         id: get_version
-        run: echo "VERSION=$(${{ github.ref_name }}.Substring(1))" >> $env:GITHUB_OUTPUT
+        # Treat the tag name as a string before calling Substring
+        run: echo "VERSION=$(('${{ github.ref_name }}').Substring(1))" >> $env:GITHUB_OUTPUT
         shell: powershell
 
       - name: Upload Windows Asset
