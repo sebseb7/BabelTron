@@ -14,6 +14,8 @@ import WaveSurfer from 'wavesurfer.js';
 import { LANGUAGES, getLanguageName } from './languages';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Slider from '@mui/material/Slider';
+import Typography from '@mui/material/Typography';
 
 function AudioRecorder({ 
   onTranscriptionStart, 
@@ -34,6 +36,8 @@ function AudioRecorder({
   const [isVoiceActivationEnabled, setIsVoiceActivationEnabled] = useState(false);
   const [isRecordingVoiceActivated, setIsRecordingVoiceActivated] = useState(false);
   const [isMeterActive, setIsMeterActive] = useState(false);
+  const [voiceThreshold, setVoiceThreshold] = useState(5); // Default threshold value (0-255)
+  const [previousVoiceActivationState, setPreviousVoiceActivationState] = useState(false); // Store previous state
 
   const mediaRecorderRef = useRef(null);
   const audioRef = useRef(null);
@@ -47,7 +51,6 @@ function AudioRecorder({
   const stopTimeoutRef = useRef(null);
 
   // Constants for VAD
-  const VOICE_THRESHOLD = 5; // Adjust sensitivity (0-255)
   const START_DELAY_MS = 50; // Delay before starting after exceeding threshold
   const STOP_DELAY_MS = 1500; // Delay before stopping after falling below threshold
 
@@ -268,9 +271,20 @@ function AudioRecorder({
 
   const handlePlayPause = useCallback(() => {
     if (wavesurferInstanceRef.current && isWaveformReady) { 
+        if (!isPlaying) {
+          // About to start playing - save and disable voice activation
+          setPreviousVoiceActivationState(isVoiceActivationEnabled);
+          if (isVoiceActivationEnabled) {
+            setIsVoiceActivationEnabled(false);
+          }
+        } else {
+          // Stopping playback - restore voice activation if it was enabled before
+          setIsVoiceActivationEnabled(previousVoiceActivationState);
+        }
+        
         wavesurferInstanceRef.current.playPause();
     }
-  }, [isWaveformReady]);
+  }, [isWaveformReady, isPlaying, isVoiceActivationEnabled, previousVoiceActivationState]);
 
   useEffect(() => {
     console.log('Waveform useEffect running. audioUrl:', audioUrl);
@@ -369,23 +383,35 @@ function AudioRecorder({
   }, [isRecording, selectedDeviceId, handleStartRecording, handleStopRecording, enableKeyboardShortcuts]);
 
   const handleToggleVoiceActivation = (event) => {
+    // Don't allow enabling if already playing audio, but always allow disabling
+    if (event.target.checked && isPlaying) return;
+    
     setIsVoiceActivationEnabled(event.target.checked);
-    if (!event.target.checked && isRecordingVoiceActivated) {
-      handleStopRecording(false);
+    
+    // If turning off voice activation while recording with voice activation, stop recording
+    if (!event.target.checked) {
+      if (isRecordingVoiceActivated) {
+        handleStopRecording(false);
+      }
+      clearTimeout(startTimeoutRef.current);
+      clearTimeout(stopTimeoutRef.current);
     }
-    clearTimeout(startTimeoutRef.current);
-    clearTimeout(stopTimeoutRef.current);
+  };
+
+  const handleThresholdChange = (event, newValue) => {
+    setVoiceThreshold(newValue);
   };
 
   useEffect(() => {
-    if (!isVoiceActivationEnabled || !selectedDeviceId) {
+    // Disable voice activation when playing audio
+    if (!isVoiceActivationEnabled || !selectedDeviceId || isPlaying) {
       clearTimeout(startTimeoutRef.current);
       clearTimeout(stopTimeoutRef.current);
       return;
     }
 
     if (!isRecording) {
-      if (meterLevel > VOICE_THRESHOLD) {
+      if (meterLevel > voiceThreshold) {
         if (!startTimeoutRef.current) {
           console.log(`VAD: Above threshold (${meterLevel}), starting ${START_DELAY_MS}ms timer...`);
           startTimeoutRef.current = setTimeout(() => {
@@ -401,7 +427,7 @@ function AudioRecorder({
         startTimeoutRef.current = null;
       }
     } else {
-      if (meterLevel < VOICE_THRESHOLD) {
+      if (meterLevel < voiceThreshold) {
         if (!stopTimeoutRef.current && isRecordingVoiceActivated) {
           console.log(`VAD: Below threshold (${meterLevel}), starting ${STOP_DELAY_MS}ms stop timer...`);
           stopTimeoutRef.current = setTimeout(() => {
@@ -415,7 +441,20 @@ function AudioRecorder({
         stopTimeoutRef.current = null;
       }
     }
-  }, [meterLevel, isVoiceActivationEnabled, isRecording, selectedDeviceId, isRecordingVoiceActivated]);
+  }, [meterLevel, isVoiceActivationEnabled, isRecording, selectedDeviceId, isRecordingVoiceActivated, voiceThreshold]);
+
+  // Effect to handle voice activation state when playback ends
+  useEffect(() => {
+    // When playback ends (isPlaying changes to false)
+    if (!isPlaying && previousVoiceActivationState) {
+      // Small delay to ensure wavesurfer is done
+      const timer = setTimeout(() => {
+        setIsVoiceActivationEnabled(previousVoiceActivationState);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isPlaying, previousVoiceActivationState]);
 
   return (
     <>
@@ -424,7 +463,7 @@ function AudioRecorder({
           display: 'flex', 
           flexDirection: { xs: 'column', sm: 'row' },
           gap: 2,
-          marginBottom: 2.5,
+          marginBottom: 3,
           width: '100%', 
           maxWidth: { xs: '90%', sm: 700 },
           justifyContent: 'center', 
@@ -469,60 +508,118 @@ function AudioRecorder({
           </FormControl>
       </Box>
 
-      {/* Meter */}
-      <Box sx={{ height: 16, width: '80%', maxWidth: 400, marginBottom: 2.5 }}>
-          <LinearProgress 
-              variant="determinate" 
-              value={isMeterActive ? (meterLevel / 255) * 100 : 0}
-              color={isRecording ? "primary" : "inherit"}
-              sx={{ height: 5, borderRadius: 3 }}
+      {/* Audio Meter Section */}
+      <Box sx={{ 
+          width: '80%', 
+          maxWidth: 400, 
+          marginBottom: 0.5,
+          paddingBottom: 0
+      }}>
+          <Box sx={{ position: 'relative', width: '100%' }}>
+              {/* Audio Level Meter */}
+              <LinearProgress 
+                  variant="determinate" 
+                  value={isMeterActive ? (meterLevel / 255) * 100 : 0}
+                  color={isRecording ? "primary" : "inherit"}
+                  sx={{ 
+                      height: 8, 
+                      borderRadius: 3,
+                      backgroundColor: 'rgba(50, 50, 50, 0.8)',
+                  }}
+              />
+              
+              {/* Threshold Indicator - Always visible */}
+              <Box sx={{ 
+                  position: 'absolute', 
+                  top: 0, 
+                  left: `${(voiceThreshold / 255) * 100}%`, 
+                  height: 8, 
+                  width: 2, 
+                  backgroundColor: meterLevel > voiceThreshold ? 'red' : 'orange',
+                  transform: 'translateX(-50%)', 
+                  zIndex: 2,
+                  opacity: isVoiceActivationEnabled ? 1 : 0.5 // Dimmed when not active
+              }} />
+          </Box>
+      </Box>
+
+      {/* Voice Activation Threshold Slider - In its own section */}
+      <Box sx={{ 
+          width: '80%', 
+          maxWidth: 400, 
+          marginBottom: 0.5,
+          paddingBottom: 0
+      }}>
+          <Slider
+              size="small"
+              value={voiceThreshold}
+              onChange={handleThresholdChange}
+              min={0}
+              max={50}
+              valueLabelDisplay="auto"
+              disabled={isRecording || isPlaying}
+              sx={{
+                  opacity: isVoiceActivationEnabled ? 1 : 0.7 // Slightly dimmed when not active
+              }}
           />
       </Box>
 
-      {/* Record/Stop Buttons & VAD Toggle */}
+      {/* Control Buttons Section */}
       <Box sx={{ 
-        marginBottom: 2.5, 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: 2 
+          width: '90%',
+          maxWidth: 500,
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 3,
+          marginBottom: 2,
+          paddingTop: 0
       }}>
-        <Button
-          variant="contained"
-          color="secondary"
-          startIcon={<MicIcon />}
-          onClick={handleStartRecording}
-          disabled={isRecording || !selectedDeviceId || isVoiceActivationEnabled}
-          sx={{ marginRight: 1 }}
-        >
-          Record
-        </Button>
-        <Button
-          variant="contained"
-          color="error"
-          startIcon={<StopIcon />}
-          onClick={handleStopRecording}
-          disabled={!isRecording}
-        >
-          Stop
-        </Button>
-        <FormControlLabel
-          control={<Switch checked={isVoiceActivationEnabled} onChange={handleToggleVoiceActivation} disabled={isRecording} />}
-          label="Voice Activate"
-          sx={{ marginLeft: 2 }}
-        />
+          {/* Record/Stop Buttons */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<MicIcon />}
+                  onClick={handleStartRecording}
+                  disabled={isRecording || !selectedDeviceId || isVoiceActivationEnabled}
+              >
+                  Record
+              </Button>
+              <Button
+                  variant="contained"
+                  color="error"
+                  startIcon={<StopIcon />}
+                  onClick={handleStopRecording}
+                  disabled={!isRecording}
+              >
+                  Stop
+              </Button>
+          </Box>
+          
+          {/* Voice Activation Switch */}
+          <FormControlLabel
+              control={<Switch 
+                  checked={isVoiceActivationEnabled} 
+                  onChange={handleToggleVoiceActivation} 
+                  disabled={false} 
+              />}
+              label="Voice Activate"
+          />
       </Box>
 
-      {/* Waveform & Play Button */}
-      <Box sx={{ width: '90%', maxWidth: 600, marginTop: 0.5, marginBottom: 2 }}>
+      {/* Waveform Section */}
+      <Box sx={{ width: '90%', maxWidth: 600, marginBottom: 2, marginTop: 2 }}>
           <Box ref={waveformRef} sx={{ 
               width: '100%', 
               height: '100px',
               backgroundColor: 'rgba(30, 30, 30, 0.8)',
-              marginBottom: 2,
+              marginBottom: 2.5,
               borderRadius: 1,
           }} />
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 2 }}>
               <Button
                   variant="contained"
                   color="primary"

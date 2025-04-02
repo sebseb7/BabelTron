@@ -27,12 +27,28 @@ async function setupIpcHandlers() {
     // Decide how to handle this - perhaps return early or disable handlers
   }
 
+  // --- Import LANGUAGES here, only when needed for handlers ---
+  const { LANGUAGES } = require("../shared/languages");
+
   // --- IPC Handlers ---
 
   // Add a dedicated channel for renderer-to-main logging
   ipcMain.on('renderer:log', (event, { level, message, data }) => {
     const levels = ['debug', 'log', 'info', 'warn', 'error'];
-    const prefix = data ? `[Renderer:${data.split('/').pop()}:${data.split(':')[1]}]` : '[Renderer]';
+    
+    // Check if data is a string before trying to split it
+    let prefix = '[Renderer]';
+    if (data && typeof data === 'string') {
+      try {
+        const fileName = data.split('/').pop() || '';
+        const lineNum = data.split(':')[1] || '';
+        prefix = `[Renderer:${fileName}:${lineNum}]`;
+      } catch (err) {
+        // Fallback if any parsing fails
+        prefix = `[Renderer]`;
+        console.warn('Error parsing log data:', err);
+      }
+    }
     
     switch (level) {
       case 0: // debug
@@ -361,16 +377,13 @@ app.whenReady().then(async () => { // Make the handler async
   });
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// Quit when all windows are closed, no matter which platform
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit();
+  app.quit();
 });
 
 // Ensure OpenAI and other requires are still available where needed
 // If they are only used within IPC handlers, they can stay there.
 // If needed elsewhere, ensure they are required appropriately.
 const { OpenAI } = require("openai");
-const { toFile } = require("openai/uploads");
-const { LANGUAGES } = require("../renderer/src/languages"); 
+const { toFile } = require("openai/uploads"); 

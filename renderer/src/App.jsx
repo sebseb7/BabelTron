@@ -538,7 +538,7 @@ function App() {
             borderRadius: 1
           }}
         >
-          Build: {clientBuildTime}
+          v{process.env.APP_VERSION} (Build: {process.env.GIT_COMMIT_HASH}, {clientBuildTime})
         </Typography>
 
         {/* --- Recorder View Container --- */}

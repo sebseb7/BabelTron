@@ -10,7 +10,8 @@
     "dev": "concurrently \"npm run watch:renderer\" \"electron .\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --mode production --config webpack.config.js && electron-builder --win",
-    "release": "standard-version"
+    "release": "standard-version",
+    "build:prod-no-package": "webpack --mode production --config webpack.config.js"
   },
   "keywords": [],
   "author": "",
@@ -49,6 +50,7 @@
     "files": [
       "main/**/*",
       "renderer/dist/**/*",
+      "shared/**/*",
       "package.json",
       "node_modules/**/*"
     ],

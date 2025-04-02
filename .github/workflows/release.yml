@@ -26,10 +26,6 @@ jobs:
 
       - name: Build Electron app
         run: npm run build # Use the build script from package.json
-        env:
-          # Add any build-specific environment variables if needed
-          # For example, code signing certificates (use GitHub secrets)
-          # GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Electron-builder might need this for auto-update checks, but not strictly for build
 
       - name: Create Release Notes from CHANGELOG
         id: changelog
