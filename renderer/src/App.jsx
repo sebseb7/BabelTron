@@ -9,6 +9,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import darkTheme from './theme';
 import babeltronLogo from './assets/babeltron.png'; // Correct import path
+import Button from '@mui/material/Button';
 
 // ---------------------------------
 import AudioRecorder from './AudioRecorder';
@@ -41,11 +42,11 @@ function App() {
   const [languageA, setLanguageA] = useState('de'); // Default Language A to German
   const [languageB, setLanguageB] = useState('detect'); // Default Language B to Detect
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcriptionError, setTranscriptionError] = useState(null);
+  const [transcriptionError, setTranscriptionError] = useState(null); // Initialize to null
   // --- Add Translation State ---
   const [translation, setTranslation] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
-  const [translationError, setTranslationError] = useState(null);
+  const [translationError, setTranslationError] = useState(null); // Initialize to null
   // --- Add TTS State & Refs ---
   const [ttsAudioUrl, setTtsAudioUrl] = useState(null);
 
@@ -63,6 +64,9 @@ function App() {
   const meterAnimationRef = useRef(null);
   const waveformRef = useRef(null);
   const wavesurferInstanceRef = useRef(null);
+
+  // --- State for Error Test Mode ---
+  const [isErrorTestModeActive, setIsErrorTestModeActive] = useState(false);
 
   useEffect(() => {
     const getAudioDevices = async () => {
@@ -550,6 +554,32 @@ function App() {
     }
   }, [isTtsWaveformReady]);
 
+  // --- Handler for Language Detection from Edit ---
+  const handleLanguageDetectedFromEdit = useCallback((detectedCode) => {
+    console.log(`Language detected from edit: ${detectedCode}. Checking A: ${languageA}, B: ${languageB}`);
+    if (languageA === 'detect' && detectedCode !== languageB) {
+      console.log(`Updating Language A from 'detect' to '${detectedCode}'`);
+      setLanguageA(detectedCode);
+    } else if (languageB === 'detect' && detectedCode !== languageA) {
+      console.log(`Updating Language B from 'detect' to '${detectedCode}'`);
+      setLanguageB(detectedCode);
+    } else {
+      console.log('No language dropdown update needed based on detection from edit.');
+    }
+  }, [languageA, languageB]); // Dependencies are the current languages
+
+  // --- Effect to Set/Clear Simulated Errors based on Test Mode ---
+  useEffect(() => {
+    if (isErrorTestModeActive) {
+      setTranscriptionError('Simulated Transcription Error');
+      setTranslationError('Simulated Main Translation Error');
+    } else {
+      // Clear errors when test mode is deactivated
+      setTranscriptionError(null);
+      setTranslationError(null);
+    }
+  }, [isErrorTestModeActive]);
+
   // Render logic based on currentView
   return (
     <ThemeProvider theme={darkTheme}>
@@ -577,16 +607,50 @@ function App() {
           </Box>
         )}
         
-        {/* Build Timestamp - Always visible with higher z-index */}
-        <Typography 
-          variant="caption" 
-          sx={{ 
-            position: 'absolute', 
-            bottom: 8, 
-            right: 8, 
+        {/* --- Bottom Centered Container for Test Button ONLY --- */}
+        <Box sx={{
+          position: 'absolute',
+          bottom: 8,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          // Removed gap as there's only one item
+          zIndex: 101 // Ensure button is above build info if they somehow overlap
+        }}>
+          {/* --- Error Test Mode Toggle Button --- */}
+          <Button
+            onClick={() => setIsErrorTestModeActive(prev => !prev)}
+            size="small"
+            variant="text"
+            sx={{
+              minWidth: 'auto',
+              padding: '0 4px',
+              fontSize: '0.6rem',
+              color: 'grey.600',
+              opacity: isErrorTestModeActive ? 1 : 0.2, // More visible when active
+              '&:hover': {
+                opacity: 1,
+                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+              },
+            }}
+            title="Toggle Simulated Error Display Test"
+          >
+            [ERR TEST]
+          </Button>
+        </Box>
+
+        {/* Build Timestamp - Back to original position */}
+        <Typography
+          variant="caption"
+          sx={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
             color: 'text.secondary',
-            zIndex: 100, // Ensure it appears above other content
-            backgroundColor: 'rgba(0, 0, 0, 0.3)', // Semi-transparent background
+            zIndex: 100,
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
             padding: '2px 6px',
             borderRadius: 1
           }}
@@ -629,6 +693,8 @@ function App() {
               languageA={languageA}
               languageB={languageB}
               isRecording={isRecording}
+              onLanguageDetected={handleLanguageDetectedFromEdit} // Pass handler down
+              isErrorTestModeActive={isErrorTestModeActive} // Pass test mode state down
             />
           </Box>
         </Box>
