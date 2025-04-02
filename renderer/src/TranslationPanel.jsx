@@ -23,7 +23,8 @@ function TranslationPanel({
   isTranslating,
   translationError, 
   languageA,
-  languageB
+  languageB,
+  isRecording
 }) {
   // Local state for editable text fields
   const [editableTranscription, setEditableTranscription] = useState(transcription);
@@ -35,7 +36,6 @@ function TranslationPanel({
   const [isTtsWaveformReady, setIsTtsWaveformReady] = useState(false);
   const [isTtsPlaying, setIsTtsPlaying] = useState(false);
   const [autoplayEnabled, setAutoplayEnabled] = useState(true);
-  const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
   // Add local translation loading state
   const [isLocalTranslating, setIsLocalTranslating] = useState(false);
   // Local detected language code
@@ -257,34 +257,52 @@ function TranslationPanel({
     }
   }, [translation, isTranslating, isLocalTranslating]); // Only depend on new translation arriving
 
-  // Reset autoplay flag when URL changes
+  // Refactored Handle autoplay when waveform becomes ready
   useEffect(() => {
-    // When ttsAudioUrl changes, reset the played flag
-    setHasAutoPlayed(false);
+    const wavesurfer = ttsWavesurferInstanceRef.current;
     
-    return () => {
-      // This cleanup runs when ttsAudioUrl changes
-      if (ttsWavesurferInstanceRef.current) {
-        ttsWavesurferInstanceRef.current.stop();
-      }
-    };
-  }, [ttsAudioUrl]);
+    console.log('Autoplay Check Effect Triggered:',
+      `Ready=${isTtsWaveformReady}`,
+      `URL=${ttsAudioUrl ? 'Exists' : 'None'}`,
+      `Enabled=${autoplayEnabled}`,
+      `Recording=${isRecording}`,
+      `Playing=${isTtsPlaying}`,
+      `Instance=${wavesurfer ? 'Exists' : 'None'}`
+    );
 
-  // Handle autoplay when waveform becomes ready
-  useEffect(() => {
-    // Check if autoplay is enabled *inside* the effect
-    if (autoplayEnabled && ttsAudioUrl && isTtsWaveformReady && !isTtsPlaying && !hasAutoPlayed) {
-      // Small delay to ensure the waveform is fully initialized
-      const timeout = setTimeout(() => {
-        if (ttsWavesurferInstanceRef.current) {
-          ttsWavesurferInstanceRef.current.play();
-          setHasAutoPlayed(true); // Mark this TTS as played
-        }
-      }, 100);
+    if (isTtsWaveformReady && wavesurfer && ttsAudioUrl) {
+      console.log('Autoplay: Waveform is Ready, Instance exists, URL exists.');
       
-      return () => clearTimeout(timeout);
+      // Check all conditions before attempting to play
+      const shouldAutoplay = autoplayEnabled && !isRecording && !isTtsPlaying;
+      console.log(`Autoplay: Conditions Check: Enabled=${autoplayEnabled}, NotRecording=${!isRecording}, NotPlaying=${!isTtsPlaying} -> ShouldAutoplay=${shouldAutoplay}`);
+
+      if (shouldAutoplay) {
+        // Ensure we are at the beginning before playing
+        if (wavesurfer.getCurrentTime() === 0) {
+          console.log('Autoplay: Conditions met and at start. Scheduling play...');
+          // Use setTimeout to avoid potential race conditions or state update issues
+          const playTimeout = setTimeout(() => {
+            console.log('Autoplay: Timeout fired, attempting play...');
+            wavesurfer.play().catch(err => console.error('Autoplay: Error during play():', err));
+          }, 100); // Small delay
+          
+          // Cleanup function for this specific effect instance
+          return () => {
+            console.log('Autoplay: Cleanup timeout.');
+            clearTimeout(playTimeout);
+          };
+        } else {
+          console.log('Autoplay: Conditions met, but not at the start. No action.');
+        }
+      } else {
+        console.log('Autoplay: Conditions not met. No action.');
+      }
     }
-  }, [ttsAudioUrl, isTtsWaveformReady, isTtsPlaying, hasAutoPlayed]);
+    
+    // Depend primarily on readiness and the URL changing
+    // Other conditions are checked inside the effect
+  }, [isTtsWaveformReady, ttsAudioUrl, autoplayEnabled, isRecording]);
 
   // TTS Playback Handler
   const handleTtsPlayPause = useCallback(() => {
