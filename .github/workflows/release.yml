@@ -5,11 +5,6 @@ on:
     tags:
       - 'v*.*.*' # Trigger on tags like v1.0.0
 
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-
 jobs:
   release:
     runs-on: windows-latest # Changed from ubuntu-latest to windows-latest
@@ -31,16 +26,12 @@ jobs:
 
       - name: Build Electron app
         run: npm run build # Use the build script from package.json
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release Notes from CHANGELOG
         id: changelog
         uses: requarks/changelog-action@v1
         with:
-          # Optional: specify the path to your CHANGELOG file if not standard
-          # changelog: 'CHANGELOG.md'
-          # Get the tag from the trigger event
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
 
       - name: Create GitHub Release
@@ -61,7 +52,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/BabelTron Setup ${{ github.ref_name }}.exe # Exact filename from build logs
+          asset_path: ./dist/BabelTron Setup ${{ github.ref_name }}.exe # Adjust filename based on electron-builder output
           asset_name: BabelTron-Setup-${{ github.ref_name }}.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
