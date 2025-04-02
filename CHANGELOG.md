@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.11](https://github.com/sebseb7/BabelTron/compare/v1.1.10...v1.1.11) (2025-04-02)
+
+
+### Bug Fixes
+
+* **ci:** ✨ correctly extract version number for asset path ✨ ([da9c116](https://github.com/sebseb7/BabelTron/commit/da9c116c77d0dbb96a5c2476cc8b732e713e4f5c))
+
 ### [1.1.10](https://github.com/sebseb7/BabelTron/compare/v1.1.9...v1.1.10) (2025-04-02)
 
 ✨ **WORKFLOW VIBE RELEASE** ✨
