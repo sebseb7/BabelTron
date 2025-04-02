@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## [1.2.0](https://github.com/sebseb7/BabelTron/compare/v1.1.13...v1.2.0) (2025-04-02)
 
+✨🚀 **BABELTRON 1.2 - THE VIBE ASCENDS!** 🚀✨
+
+This major milestone marks the successful culmination of our initial vibe-coding journey! We've established a fully functional real-time translation app with a smooth CI/CD pipeline.
+
+**Special Acknowledgments:**
+*   **AI Coding Assistants:** Most of the heavy lifting, bug squashing, and workflow wrangling was performed by **Claude 3.7** and **Gemini 2.5 Pro** via Cursor. Their ability to understand context, generate code, debug errors, and manage Git/CI workflows was instrumental.
+*   **Prompt Engineering & Guidance:** User **@sebseb7** provided the core vision, prompts, testing, and invaluable feedback that guided the AI development process.
+
+This release represents a true synergy between human direction and AI execution, all fueled by immaculate vibes! 🙏✨🧘‍♂️
+
+### Bug Fixes
+
+* **ci:** ✨ correct PowerShell syntax for version extraction ✨ ([9ac5a26](https://github.com/sebseb7/BabelTron/commit/9ac5a26d1d1e820104f3c01d85df2f3a13d57f47))
+* **ci:** ✨ correctly extract version number for asset path ✨ ([da9c116](https://github.com/sebseb7/BabelTron/commit/da9c116c77d0dbb96a5c2476cc8b732e713e4f5c))
+* **ci:** ✨ reinstate changelog action for better release notes ✨ ([876bc69](https://github.com/sebseb7/BabelTron/commit/876bc6905c3d7621f0b00de4e8913380079ed962))
+* **ci:** ✨ specify Node.js version in package.json engines ✨ ([65210af](https://github.com/sebseb7/BabelTron/commit/65210af8a8a0a3a548097004745b252689154f6b))
+* **TTS:** Prevent re-synthesis when changing language selection ([08f0a91](https://github.com/sebseb7/BabelTron/commit/08f0a91a12760c89181b077d472df815d02b4265))
+
 ### [1.1.13](https://github.com/sebseb7/BabelTron/compare/v1.1.12...v1.1.13) (2025-04-02)
 
 ✨ **RELEASE NOTES HARMONY RELEASE** ✨
@@ -18,8 +36,7 @@ Powershell syntax bends to the will of the vibe! The final CI hurdle overcome th
 
 ### Bug Fixes
 
-* **ci:** ✨ correct PowerShell syntax for version extraction ✨ ([9ac5a26](https://github.com/sebseb7/BabelTron/commit/9ac5a2613e3776755256bc3a7282bd80241eb1a4))
-* **ci:** ✨ specify Node.js version in package.json engines ✨ ([65210af](https://github.com/sebseb7/BabelTron/commit/65210af0d30ec4965c5c16d4b277eac9c933ba12))
+* **ci:** ✨ correctly extract version number for asset path ✨ ([da9c116](https://github.com/sebseb7/BabelTron/commit/da9c116c77d0dbb96a5c2476cc8b732e713e4f5c))
 
 ### [1.1.11](https://github.com/sebseb7/BabelTron/compare/v1.1.10...v1.1.11) (2025-04-02)
 
