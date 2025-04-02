@@ -138,25 +138,23 @@ function AudioRecorder({
     }
   }, []);
 
+  // Effect to manage audio context lifecycle based ONLY on selected device
   useEffect(() => {
-    const needsContext = (isRecording || isVoiceActivationEnabled) && selectedDeviceId;
-    const contextExists = audioContextRef.current && audioContextRef.current.state !== 'closed';
-
-    console.log(`Context check: needsContext=${needsContext}, contextExists=${contextExists}, isRecording=${isRecording}, VAD=${isVoiceActivationEnabled}`);
-
-    if (needsContext && !contextExists) {
-        setupAudioContextAndMeter();
-    } else if (!needsContext && contextExists) {
-        cleanupAudioContextAndMeter();
+    if (selectedDeviceId) {
+      console.log('Device selected, ensuring audio context for meter is active.');
+      setupAudioContextAndMeter();
+    } else {
+      console.log('No device selected, ensuring audio context for meter is cleaned up.');
+      cleanupAudioContextAndMeter();
     }
 
+    // Cleanup function to run when device changes or component unmounts
     return () => {
-        if (audioContextRef.current && audioContextRef.current.state !== 'closed' && !((isRecording || isVoiceActivationEnabled) && selectedDeviceId)) {
-            // console.log('Running cleanup from effect return...');
-            // cleanupAudioContextAndMeter();
-        }
+      console.log('Running cleanup for audio context due to device change or unmount.');
+      cleanupAudioContextAndMeter();
     };
-  }, [isRecording, isVoiceActivationEnabled, selectedDeviceId, setupAudioContextAndMeter, cleanupAudioContextAndMeter]);
+  // Depend only on the selected device ID and the setup/cleanup functions
+  }, [selectedDeviceId, setupAudioContextAndMeter, cleanupAudioContextAndMeter]);
 
   const updateMeter = () => {
     if (analyserRef.current) {
@@ -243,9 +241,6 @@ function AudioRecorder({
       console.error("Error starting recording:", err);
       setIsRecording(false);
       setIsRecordingVoiceActivated(false);
-      if (!isVoiceActivationEnabled) {
-        cleanupAudioContextAndMeter(); 
-      }
     }
   }, [selectedDeviceId, audioUrl, handleTranscribe, isRecording, isVoiceActivationEnabled, cleanupAudioContextAndMeter]);
 
@@ -267,7 +262,7 @@ function AudioRecorder({
         setIsRecording(false); 
         setIsRecordingVoiceActivated(false); 
     }
-  }, [isVoiceActivationEnabled, cleanupAudioContextAndMeter]);
+  }, [isVoiceActivationEnabled]);
 
   const handlePlayPause = useCallback(() => {
     if (wavesurferInstanceRef.current && isWaveformReady) { 
@@ -516,23 +511,36 @@ function AudioRecorder({
           paddingBottom: 0
       }}>
           <Box sx={{ position: 'relative', width: '100%' }}>
-              {/* Audio Level Meter */}
-              <LinearProgress 
-                  variant="determinate" 
-                  value={isMeterActive ? (meterLevel / 255) * 100 : 0}
-                  color={isRecording ? "primary" : "inherit"}
-                  sx={{ 
-                      height: 8, 
-                      borderRadius: 3,
-                      backgroundColor: 'rgba(50, 50, 50, 0.8)',
-                  }}
-              />
+              {(() => {
+                  // Calculate scaled level and determine color
+                  const scaledLevel = isMeterActive ? Math.pow(Math.max(0, meterLevel) / 255, 0.5) * 100 : 0;
+                  let meterColor = 'success'; // Default green
+                  // Lower the thresholds for yellow and red
+                  if (scaledLevel >= 70) { // Red threshold lowered
+                      meterColor = 'error'; // Red
+                  } else if (scaledLevel >= 30) { // Yellow threshold lowered
+                      meterColor = 'warning'; // Yellow
+                  }
+
+                  return (
+                      <LinearProgress 
+                          variant="determinate" 
+                          value={scaledLevel} // Use the calculated scaled level
+                          color={meterColor} // Use the dynamic color
+                          sx={{ 
+                              height: 8, 
+                              borderRadius: 3,
+                              backgroundColor: 'rgba(50, 50, 50, 0.8)',
+                          }}
+                      />
+                  );
+              })()}
               
               {/* Threshold Indicator - Always visible */}
               <Box sx={{ 
                   position: 'absolute', 
                   top: 0, 
-                  left: `${(voiceThreshold / 255) * 100}%`, 
+                  left: `${Math.pow(Math.max(0, voiceThreshold) / 255, 0.5) * 100}%`, 
                   height: 8, 
                   width: 2, 
                   backgroundColor: meterLevel > voiceThreshold ? 'red' : 'orange',
