@@ -42,6 +42,8 @@ function TranslationPanel({
   const [isLocalTranslating, setIsLocalTranslating] = useState(false);
   // Local detected language code
   const [localDetectedLangCode, setLocalDetectedLangCode] = useState('');
+  // Add state for TTS audio channel
+  const [ttsAudioChannel, setTtsAudioChannel] = useState('center'); // 'left', 'right', or 'center'
   
   const ttsWaveformDisplayRef = useRef(null);
 
@@ -149,6 +151,16 @@ function TranslationPanel({
         ttsLanguageCode = languageB !== 'detect' ? languageB : languageA;
       }
       
+      // Determine and set the channel before synthesizing
+      let channel = 'center';
+      if (ttsLanguageCode === languageA) {
+        channel = 'left';
+      } else if (ttsLanguageCode === languageB) {
+        channel = 'right';
+      }
+      setTtsAudioChannel(channel);
+      console.log(`Setting TTS channel to: ${channel}`);
+      
       console.log(`TTS for edited translation using language: ${ttsLanguageCode}`);
       // Call synthesizeSpeech from the hook
       synthesizeSpeech(editableTranslation, ttsLanguageCode);
@@ -161,6 +173,16 @@ function TranslationPanel({
       console.log(`Auto-synthesizing new translation in ${targetTtsLangCode}`);
       // Trigger synthesis via the hook
       synthesizeSpeech(translation, targetTtsLangCode);
+      
+      // Determine and set the channel after triggering synthesis
+      let channel = 'center';
+      if (targetTtsLangCode === languageA) {
+        channel = 'left';
+      } else if (targetTtsLangCode === languageB) {
+        channel = 'right';
+      }
+      setTtsAudioChannel(channel);
+      console.log(`Setting TTS channel to: ${channel}`);
     }
   }, [translation, isTranslating, isLocalTranslating, targetTtsLangCode, synthesizeSpeech]);
   
@@ -304,6 +326,7 @@ function TranslationPanel({
         progressColor="rgb(0, 200, 100)"
         onReadyChange={setIsTtsWaveformReady}
         onPlayStateChange={setIsTtsPlaying}
+        ttsAudioChannel={ttsAudioChannel}
       />
       
       {/* Container for play button and error indicator */}
