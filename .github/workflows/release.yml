@@ -38,6 +38,8 @@ jobs:
 
       - name: Create Release Notes from CHANGELOG
         id: changelog
+        # Only run this step for tag pushes
+        if: startsWith(github.ref, 'refs/tags/')
         uses: requarks/changelog-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -45,6 +47,8 @@ jobs:
 
       - name: Create GitHub Release
         id: create_release
+        # Only run this step for tag pushes
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -57,11 +61,15 @@ jobs:
 
       - name: Get version number
         id: get_version
+        # Only run this step for tag pushes
+        if: startsWith(github.ref, 'refs/tags/')
         # Treat the tag name as a string before calling Substring
         run: echo "VERSION=$(('${{ github.ref_name }}').Substring(1))" >> $env:GITHUB_OUTPUT
         shell: powershell
 
       - name: Upload Windows Asset
+        # Only run this step for tag pushes
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
