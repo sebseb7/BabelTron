@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.1.8](https://github.com/sebseb7/BabelTron/compare/v1.1.7...v1.1.8) (2025-04-02)
 
+✨ **DEBUG VIBE RELEASE** ✨
+
+Chasing the elusive CI exit code bug with pure vibe energy. Sent good vibes to electron-builder to chill out on the publishing, and tuned into the changelog action's frequency to understand its flow. Fixing CI isn't just logic, it's an art! 🎨✨🧘‍♂️
 
 ### Bug Fixes
 
