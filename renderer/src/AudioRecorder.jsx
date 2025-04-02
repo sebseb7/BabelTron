@@ -16,6 +16,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Slider from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
 import WaveformDisplay from './WaveformDisplay';
+import { useAudioInputMeter } from './hooks/useAudioInputMeter';
+import { useVoiceActivityDetection } from './hooks/useVoiceActivityDetection';
 
 function AudioRecorder({ 
   onTranscriptionStart, 
@@ -31,144 +33,24 @@ function AudioRecorder({
   const [audioBlob, setAudioBlob] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
-  const [meterLevel, setMeterLevel] = useState(0);
   const [isWaveformReady, setIsWaveformReady] = useState(false);
   const [isVoiceActivationEnabled, setIsVoiceActivationEnabled] = useState(false);
-  const [isRecordingVoiceActivated, setIsRecordingVoiceActivated] = useState(false);
-  const [isMeterActive, setIsMeterActive] = useState(false);
-  const [voiceThreshold, setVoiceThreshold] = useState(5); // Default threshold value (0-255)
-  const [previousVoiceActivationState, setPreviousVoiceActivationState] = useState(false); // Store previous state
+  const [voiceThreshold, setVoiceThreshold] = useState(5);
+  const [previousVoiceActivationState, setPreviousVoiceActivationState] = useState(false);
+
+  const { meterLevel, isMeterActive } = useAudioInputMeter(selectedDeviceId);
 
   const mediaRecorderRef = useRef(null);
   const audioRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
-  const sourceRef = useRef(null);
-  const meterAnimationRef = useRef(null);
   const waveformDisplayRef = useRef(null);
-  const startTimeoutRef = useRef(null);
-  const stopTimeoutRef = useRef(null);
-
-  // Constants for VAD
-  const START_DELAY_MS = 50; // Delay before starting after exceeding threshold
-  const STOP_DELAY_MS = 1500; // Delay before stopping after falling below threshold
 
   useEffect(() => {
     return () => {
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }
-      if (meterAnimationRef.current) {
-        cancelAnimationFrame(meterAnimationRef.current);
-      }
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-      }
-      clearTimeout(startTimeoutRef.current);
-      clearTimeout(stopTimeoutRef.current);
     };
   }, []);
-
-  const setupAudioContextAndMeter = useCallback(async () => {
-    if (!selectedDeviceId || audioContextRef.current?.state === 'running') {
-        console.log('Audio context setup skipped (no device or already running)');
-        return;
-    }
-    console.log('Setting up Audio Context and Meter...');
-    try {
-        const constraints = { audio: { deviceId: { exact: selectedDeviceId } } };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        
-        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-            await audioContextRef.current.close();
-        }
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-        
-        if (audioContextRef.current.state === 'suspended') {
-            await audioContextRef.current.resume();
-        }
-
-        analyserRef.current = audioContextRef.current.createAnalyser();
-        analyserRef.current.fftSize = 256;
-
-        if(sourceRef.current) {
-            sourceRef.current.disconnect();
-        }
-        sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
-        sourceRef.current.connect(analyserRef.current);
-
-        audioContextRef.current._streamTracks = stream.getTracks(); 
-        
-        setIsMeterActive(true);
-        updateMeter();
-
-    } catch (err) {
-        console.error("Error setting up audio context for meter:", err);
-        cleanupAudioContextAndMeter();
-    }
-  }, [selectedDeviceId]);
-
-  const cleanupAudioContextAndMeter = useCallback(() => {
-    console.log('Cleaning up Audio Context and Meter...');
-    if (meterAnimationRef.current) {
-      cancelAnimationFrame(meterAnimationRef.current);
-      meterAnimationRef.current = null;
-    }
-    setIsMeterActive(false);
-    setMeterLevel(0);
-
-    if (audioContextRef.current?._streamTracks) {
-        audioContextRef.current._streamTracks.forEach(track => track.stop());
-        audioContextRef.current._streamTracks = null; 
-    }
-
-    if (sourceRef.current) {
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
-    }
-    analyserRef.current = null; 
-
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close().catch(e => console.error("Error closing audio context:", e));
-      audioContextRef.current = null;
-    }
-  }, []);
-
-  // Effect to manage audio context lifecycle based ONLY on selected device
-  useEffect(() => {
-    if (selectedDeviceId) {
-      console.log('Device selected, ensuring audio context for meter is active.');
-      setupAudioContextAndMeter();
-    } else {
-      console.log('No device selected, ensuring audio context for meter is cleaned up.');
-      cleanupAudioContextAndMeter();
-    }
-
-    // Cleanup function to run when device changes or component unmounts
-    return () => {
-      console.log('Running cleanup for audio context due to device change or unmount.');
-      cleanupAudioContextAndMeter();
-    };
-  // Depend only on the selected device ID and the setup/cleanup functions
-  }, [selectedDeviceId, setupAudioContextAndMeter, cleanupAudioContextAndMeter]);
-
-  const updateMeter = () => {
-    if (analyserRef.current) {
-      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-      analyserRef.current.getByteFrequencyData(dataArray);
-      let sum = 0;
-      for (let i = 0; i < dataArray.length; i++) {
-        sum += dataArray[i];
-      }
-      const average = sum / dataArray.length;
-      setMeterLevel(average);
-      meterAnimationRef.current = requestAnimationFrame(updateMeter);
-    } else {
-        cancelAnimationFrame(meterAnimationRef.current);
-        meterAnimationRef.current = null;
-        setMeterLevel(0);
-    }
-  };
 
   const handleTranscribe = useCallback(async (blobToTranscribe) => {
     if (!blobToTranscribe) {
@@ -180,97 +62,82 @@ function AudioRecorder({
     onTranscriptionStart(arrayBuffer, blobToTranscribe);
   }, [onTranscriptionStart]);
 
-  const handleStartRecording = useCallback(async (isVoiceTriggered = false) => {
-    if (!selectedDeviceId) {
-      console.warn("No audio input device selected.");
-      return;
-    }
-    if (isRecording) {
-        console.log("Recording already in progress.");
-        return;
-    }
-    
-    console.log(`Starting recording... (Voice Triggered: ${isVoiceTriggered})`);
-    setIsRecordingVoiceActivated(isVoiceTriggered);
+  // Define basic start/stop FIRST (without VAD logic)
+  const startMediaRecorder = useCallback(async () => {
+    if (!selectedDeviceId || isRecording) return;
 
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      setAudioUrl(null);
-    }
+    if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null); }
 
     try {
-        const constraints = { audio: { deviceId: { exact: selectedDeviceId } } };
-        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-        
-        const options = { mimeType: 'audio/webm' };
-        let chosenMimeType = 'audio/webm';
-        if (!MediaRecorder.isTypeSupported(chosenMimeType)) {
-            chosenMimeType = 'audio/mp3';
-            if (!MediaRecorder.isTypeSupported(chosenMimeType)) chosenMimeType = '';
-        }
-        mediaRecorderRef.current = new MediaRecorder(mediaStream, chosenMimeType ? { mimeType: chosenMimeType } : {});
-        console.log('Using MediaRecorder mimeType:', mediaRecorderRef.current.mimeType);
-
+      const constraints = { audio: { deviceId: { exact: selectedDeviceId } } };
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const options = { mimeType: 'audio/webm' }; // Simplified mime type logic
+      mediaRecorderRef.current = new MediaRecorder(mediaStream, options);
       const audioChunks = [];
       mediaRecorderRef.current.ondataavailable = (event) => { audioChunks.push(event.data); };
-
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(audioChunks, { type: mediaRecorderRef.current.mimeType || 'audio/webm' });
         const newUrl = URL.createObjectURL(blob);
-        
         if (audioUrl) { URL.revokeObjectURL(audioUrl); }
         setAudioBlob(blob);
         setAudioUrl(newUrl);
-        
         mediaStream.getTracks().forEach(track => track.stop()); 
-
         handleTranscribe(blob);
       };
-
       mediaRecorderRef.current.start();
       setIsRecording(true);
       setAudioBlob(null);
       setIsPlaying(false);
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
-
     } catch (err) {
       console.error("Error starting recording:", err);
       setIsRecording(false);
-      setIsRecordingVoiceActivated(false);
     }
-  }, [selectedDeviceId, audioUrl, handleTranscribe, isRecording, isVoiceActivationEnabled, cleanupAudioContextAndMeter]);
+  }, [selectedDeviceId, audioUrl, handleTranscribe, isRecording]);
 
-  const handleStopRecording = useCallback((isManualStop = true) => {
-    console.log(`Stopping recording... (Manual: ${isManualStop})`);
+  const stopMediaRecorder = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      
-      if (isManualStop) {
-        clearTimeout(startTimeoutRef.current);
-        clearTimeout(stopTimeoutRef.current);
-        startTimeoutRef.current = null;
-        stopTimeoutRef.current = null;
-        setIsRecordingVoiceActivated(false);
-      }
     } else {
-        console.log("Stop recording called but not in recording state or no recorder.");
-        setIsRecording(false); 
-        setIsRecordingVoiceActivated(false); 
+      console.log("Stop recording called but not in recording state or no recorder.");
+      setIsRecording(false); // Ensure state is false
     }
-  }, [isVoiceActivationEnabled]);
+  }, []); // No dependencies needed
+
+  // Use the VAD Hook, passing the basic start/stop
+  const { 
+    isRecordingVoiceActivated: isRecordingVoiceActivatedVADHook 
+  } = useVoiceActivityDetection({
+    meterLevel,
+    voiceThreshold,
+    isVadEnabled: isVoiceActivationEnabled,
+    isAudioPlaying: isPlaying,
+    canRecord: !!selectedDeviceId,
+    isManuallyRecording: isRecording, // Pass the main recording state
+    onStart: startMediaRecorder, // VAD calls this to start
+    onStop: stopMediaRecorder   // VAD calls this to stop
+  });
+
+  // Handlers for UI interaction
+  const handleManualStartRecording = useCallback(() => {
+     console.log('Starting recording... (Manual Trigger)');
+     startMediaRecorder();
+  }, [startMediaRecorder]);
+
+  const handleManualStopRecording = useCallback(() => {
+    console.log(`Stopping recording... (Manual Trigger)`);
+    stopMediaRecorder();
+  }, [stopMediaRecorder]);
 
   const handlePlayPause = useCallback(() => {
     waveformDisplayRef.current?.playPause();
 
     if (isPlaying) {
-      // About to start playing - save and disable voice activation
       setPreviousVoiceActivationState(isVoiceActivationEnabled);
       if (isVoiceActivationEnabled) {
         setIsVoiceActivationEnabled(false);
       }
     } else {
-      // Stopping playback - restore voice activation if it was enabled before
       setIsVoiceActivationEnabled(previousVoiceActivationState);
     }
   }, [isPlaying, isVoiceActivationEnabled, previousVoiceActivationState]);
@@ -298,10 +165,10 @@ function AudioRecorder({
           event.stopPropagation();
 
           if (isRecording) {
-            handleStopRecording();
+            handleManualStopRecording();
           } else {
             if (selectedDeviceId) {
-              handleStartRecording();
+              handleManualStartRecording();
             }
           }
         }
@@ -316,85 +183,20 @@ function AudioRecorder({
     }
     
     return () => {};
-  }, [isRecording, selectedDeviceId, handleStartRecording, handleStopRecording, enableKeyboardShortcuts]);
+  }, [isRecording, selectedDeviceId, handleManualStartRecording, handleManualStopRecording, enableKeyboardShortcuts]);
 
   const handleToggleVoiceActivation = (event) => {
-    // Don't allow enabling if already playing audio, but always allow disabling
     if (event.target.checked && isPlaying) return;
     
     setIsVoiceActivationEnabled(event.target.checked);
-    
-    // If turning off voice activation while recording with voice activation, stop recording
-    if (!event.target.checked) {
-      if (isRecordingVoiceActivated) {
-        handleStopRecording(false);
-      }
-      clearTimeout(startTimeoutRef.current);
-      clearTimeout(stopTimeoutRef.current);
-    }
   };
 
   const handleThresholdChange = (event, newValue) => {
     setVoiceThreshold(newValue);
   };
 
-  useEffect(() => {
-    // Disable voice activation when playing audio
-    if (!isVoiceActivationEnabled || !selectedDeviceId || isPlaying) {
-      clearTimeout(startTimeoutRef.current);
-      clearTimeout(stopTimeoutRef.current);
-      return;
-    }
-
-    if (!isRecording) {
-      if (meterLevel > voiceThreshold) {
-        if (!startTimeoutRef.current) {
-          console.log(`VAD: Above threshold (${meterLevel}), starting ${START_DELAY_MS}ms timer...`);
-          startTimeoutRef.current = setTimeout(() => {
-            console.log('VAD: Start timer fired, starting recording.');
-            handleStartRecording(true);
-            startTimeoutRef.current = null;
-          }, START_DELAY_MS);
-        }
-        clearTimeout(stopTimeoutRef.current);
-        stopTimeoutRef.current = null;
-      } else {
-        clearTimeout(startTimeoutRef.current);
-        startTimeoutRef.current = null;
-      }
-    } else {
-      if (meterLevel < voiceThreshold) {
-        if (!stopTimeoutRef.current && isRecordingVoiceActivated) {
-          console.log(`VAD: Below threshold (${meterLevel}), starting ${STOP_DELAY_MS}ms stop timer...`);
-          stopTimeoutRef.current = setTimeout(() => {
-            console.log('VAD: Stop timer fired, stopping recording.');
-            handleStopRecording(false);
-            stopTimeoutRef.current = null;
-          }, STOP_DELAY_MS);
-        }
-      } else {
-        clearTimeout(stopTimeoutRef.current);
-        stopTimeoutRef.current = null;
-      }
-    }
-  }, [meterLevel, isVoiceActivationEnabled, isRecording, selectedDeviceId, isRecordingVoiceActivated, voiceThreshold]);
-
-  // Effect to handle voice activation state when playback ends
-  useEffect(() => {
-    // When playback ends (isPlaying changes to false)
-    if (!isPlaying && previousVoiceActivationState) {
-      // Small delay to ensure waveformDisplay is done
-      const timer = setTimeout(() => {
-        setIsVoiceActivationEnabled(previousVoiceActivationState);
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isPlaying, previousVoiceActivationState]);
-
   return (
     <>
-      {/* Input Row (Languages) */}
       <Box sx={{ 
           display: 'flex', 
           flexDirection: { xs: 'column', sm: 'row' },
@@ -405,7 +207,6 @@ function AudioRecorder({
           justifyContent: 'center', 
           alignItems: 'center' 
       }}>
-          {/* Language A Dropdown */}
           <FormControl sx={{ minWidth: 200, width: { xs: '100%', sm: '45%' } }} size="small">
               <InputLabel id="lang-a-select-label">Language A</InputLabel>
               <Select
@@ -424,7 +225,6 @@ function AudioRecorder({
               </Select>
           </FormControl>
 
-          {/* Language B Dropdown */}
           <FormControl sx={{ minWidth: 200, width: { xs: '100%', sm: '45%' } }} size="small">
               <InputLabel id="lang-b-select-label">Language B</InputLabel>
               <Select
@@ -444,7 +244,6 @@ function AudioRecorder({
           </FormControl>
       </Box>
 
-      {/* Audio Meter Section */}
       <Box sx={{ 
           width: '80%', 
           maxWidth: 400, 
@@ -453,21 +252,19 @@ function AudioRecorder({
       }}>
           <Box sx={{ position: 'relative', width: '100%' }}>
               {(() => {
-                  // Calculate scaled level and determine color
                   const scaledLevel = isMeterActive ? Math.pow(Math.max(0, meterLevel) / 255, 0.5) * 100 : 0;
-                  let meterColor = 'success'; // Default green
-                  // Lower the thresholds for yellow and red
-                  if (scaledLevel >= 70) { // Red threshold lowered
-                      meterColor = 'error'; // Red
-                  } else if (scaledLevel >= 30) { // Yellow threshold lowered
-                      meterColor = 'warning'; // Yellow
+                  let meterColor = 'success';
+                  if (scaledLevel >= 70) {
+                      meterColor = 'error';
+                  } else if (scaledLevel >= 30) {
+                      meterColor = 'warning';
                   }
 
                   return (
                       <LinearProgress 
                           variant="determinate" 
-                          value={scaledLevel} // Use the calculated scaled level
-                          color={meterColor} // Use the dynamic color
+                          value={scaledLevel}
+                          color={meterColor}
                           sx={{ 
                               height: 8, 
                               borderRadius: 3,
@@ -477,7 +274,6 @@ function AudioRecorder({
                   );
               })()}
               
-              {/* Threshold Indicator - Always visible */}
               <Box sx={{ 
                   position: 'absolute', 
                   top: 0, 
@@ -487,12 +283,11 @@ function AudioRecorder({
                   backgroundColor: meterLevel > voiceThreshold ? 'red' : 'orange',
                   transform: 'translateX(-50%)', 
                   zIndex: 2,
-                  opacity: isVoiceActivationEnabled ? 1 : 0.5 // Dimmed when not active
+                  opacity: isVoiceActivationEnabled ? 1 : 0.5
               }} />
           </Box>
       </Box>
 
-      {/* Voice Activation Threshold Slider - In its own section */}
       <Box sx={{ 
           width: '80%', 
           maxWidth: 400, 
@@ -508,12 +303,11 @@ function AudioRecorder({
               valueLabelDisplay="auto"
               disabled={isRecording || isPlaying}
               sx={{
-                  opacity: isVoiceActivationEnabled ? 1 : 0.7 // Slightly dimmed when not active
+                  opacity: isVoiceActivationEnabled ? 1 : 0.7
               }}
           />
       </Box>
 
-      {/* Control Buttons Section */}
       <Box sx={{ 
           width: '90%',
           maxWidth: 500,
@@ -525,21 +319,18 @@ function AudioRecorder({
           marginBottom: 2,
           paddingTop: 0
       }}>
-          {/* Button and Shortcut Hint */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {/* Unified Record/Stop Button */}
               <Button
                   variant="contained"
                   color={isRecording ? "error" : "secondary"}
                   startIcon={isRecording ? <StopIcon /> : <MicIcon />}
-                  onClick={isRecording ? handleStopRecording : handleStartRecording}
+                  onClick={isRecording ? handleManualStopRecording : handleManualStartRecording}
                   disabled={!isRecording && (!selectedDeviceId || isVoiceActivationEnabled)}
                   sx={{ minWidth: 110, width: 110 }}
               >
                   {isRecording ? 'Stop' : 'Record'}
               </Button>
               
-              {/* Shortcut Hint */}
               {enableKeyboardShortcuts && (
                   <Typography variant="caption" color="text.secondary">
                       (Space)
@@ -547,7 +338,6 @@ function AudioRecorder({
               )}
           </Box>
           
-          {/* Voice Activation Switch */}
           <FormControlLabel
               control={<Switch 
                   checked={isVoiceActivationEnabled} 
@@ -558,7 +348,6 @@ function AudioRecorder({
           />
       </Box>
 
-      {/* Waveform Section */}
       <Box sx={{ width: '90%', maxWidth: 600, marginBottom: 2, marginTop: 2 }}>
           <WaveformDisplay 
               ref={waveformDisplayRef}
@@ -569,7 +358,7 @@ function AudioRecorder({
               onPlayStateChange={setIsPlaying}
           />
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 1, marginBottom: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 2 }}>
               <Button
                   variant="contained"
                   color="primary"
