@@ -34,6 +34,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create Release Notes from CHANGELOG
+        id: changelog
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -42,6 +49,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           release_name: Release ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.changes }} # Use output from changelog action
           draft: false
           prerelease: false
 
