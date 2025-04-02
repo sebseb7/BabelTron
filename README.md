@@ -8,6 +8,8 @@ Voice recorder with transcription, translation, and language detection powered b
   <img src="screenshots/babeltron_logo.png" alt="BabelTron Logo" width="200"/>
   <br/>
   <em>100% vibe coded with cursor</em>
+  <br/>
+  <img src="https://img.shields.io/badge/VIBE%20CODED-100%25-blueviolet?style=for-the-badge" alt="100% VIBE CODED"/>
 </div>
 
 ## Demo
