@@ -1,6 +1,8 @@
 # BabelTron
 
-[![Release Electron App](https://github.com/sebseb7/BabelTron/actions/workflows/release.yml/badge.svg?branch=god)](https://github.com/sebseb7/BabelTron/actions/workflows/release.yml) [![Vibe Status](https://img.shields.io/badge/Vibe%20Status-100%25%20Vibe%20Coded-brightgreen)](https://github.com/sebseb7/BabelTron)
+[![Release Electron App](https://github.com/sebseb7/BabelTron/actions/workflows/release.yml/badge.svg)](https://github.com/sebseb7/BabelTron/actions/workflows/release.yml)
+
+[![Vibe Status](https://img.shields.io/badge/Vibe%20Status-100%25%20Vibe%20Coded-brightgreen)](https://github.com/sebseb7/BabelTron)
 
 Voice recorder with transcription, translation, and language detection powered by OpenAI.
 
