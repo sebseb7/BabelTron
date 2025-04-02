@@ -22,60 +22,13 @@ async function initializeStore() {
 // --- Initialize store before setting up IPC handlers that need it ---
 async function setupIpcHandlers() {
   const store = await initializeStore();
-  if (!store) {
-    console.error('Store initialization failed, some IPC handlers may not work.');
-    // Decide how to handle this - perhaps return early or disable handlers
-  }
 
-  // --- Import LANGUAGES here, only when needed for handlers ---
-  const { LANGUAGES } = require("../shared/languages");
-
-  // --- IPC Handlers ---
-
-  // Add a dedicated channel for renderer-to-main logging
-  ipcMain.on('renderer:log', (event, { level, message, data }) => {
-    const levels = ['debug', 'log', 'info', 'warn', 'error'];
-    
-    // Check if data is a string before trying to split it
-    let prefix = '[Renderer]';
-    if (data && typeof data === 'string') {
-      try {
-        const fileName = data.split('/').pop() || '';
-        const lineNum = data.split(':')[1] || '';
-        prefix = `[Renderer:${fileName}:${lineNum}]`;
-      } catch (err) {
-        // Fallback if any parsing fails
-        prefix = `[Renderer]`;
-        console.warn('Error parsing log data:', err);
-      }
-    }
-    
-    switch (level) {
-      case 0: // debug
-        console.debug(`${prefix} ${message}`);
-        break;
-      case 1: // log
-        console.log(`${prefix} ${message}`);
-        break;
-      case 2: // info
-        console.info(`${prefix} ${message}`);
-        break;
-      case 3: // warn
-        console.warn(`${prefix} ${message}`);
-        break;
-      case 4: // error
-        console.error(`${prefix} ${message}`);
-        break;
-      default:
-        console.log(`${prefix} [${levels[level] || level}] ${message}`);
-    }
-  });
-
-  // Settings using store (ensure store is available)
+  // --- Settings Storage Handlers ---
   ipcMain.handle('settings:get-api-key', async () => {
-    if (!store) return ''; // Handle case where store failed to load
+    if (!store) return '';
     return store.get('openai-api-key', '');
   });
+
   ipcMain.handle('settings:set-api-key', async (event, apiKey) => {
     if (!store) return { success: false, error: 'Store not initialized' };
     store.set('openai-api-key', apiKey);
@@ -83,201 +36,23 @@ async function setupIpcHandlers() {
     return { success: true };
   });
 
-  // --- TTS Model Storage Handlers --- 
-  ipcMain.handle('settings:get-tts-model', async () => {
-    if (!store) return 'tts-1-hd'; 
-    return store.get('tts-model', 'tts-1-hd');
-  });
-  ipcMain.handle('settings:set-tts-model', async (event, model) => {
-    if (!store) return { success: false, error: 'Store not initialized' };
-    store.set('tts-model', model);
-    console.log('TTS Model saved:', model);
-    return { success: true };
-  });
-  // ----------------------------------------
-
-  // --- Transcribe Model Storage Handlers --- 
-  ipcMain.handle('settings:get-transcribe-model', async () => {
-    if (!store) return 'whisper-1'; 
-    return store.get('transcribe-model', 'whisper-1');
-  });
-  ipcMain.handle('settings:set-transcribe-model', async (event, model) => {
-    if (!store) return { success: false, error: 'Store not initialized' };
-    store.set('transcribe-model', model);
-    console.log('Transcribe Model saved:', model);
-    return { success: true };
-  });
-  // ----------------------------------------
-
   // --- Audio Device Storage Handlers --- 
   ipcMain.handle('settings:get-audio-device', async () => {
     if (!store) return ''; 
     return store.get('audio-device-id', '');
   });
+
   ipcMain.handle('settings:set-audio-device', async (event, deviceId) => {
     if (!store) return { success: false, error: 'Store not initialized' };
     store.set('audio-device-id', deviceId);
     console.log('Audio Device ID saved:', deviceId);
     return { success: true };
   });
-  // ----------------------------------------
 
-  // OpenAI handlers using store
-  ipcMain.handle('openai:transcribe', async (event, audioDataArrayBuffer) => {
-    if (!store) return { error: 'Store not initialized' };
-    // ... rest of transcribe logic using store.get('openai-api-key') etc.
-    const apiKey = store.get('openai-api-key');
-    // ... (keep existing transcribe logic below)
-    if (!apiKey) {
-      return { error: 'API key not set.' };
-    }
-    if (!audioDataArrayBuffer || audioDataArrayBuffer.byteLength === 0) {
-      return { error: 'No audio data received.' };
-    }
-
-    try {
-      const openai = new OpenAI({ apiKey });
-      const transcribeModel = store.get('transcribe-model', 'whisper-1');
-      console.log(`Using transcription model: ${transcribeModel}`);
-      const audioBuffer = Buffer.from(audioDataArrayBuffer);
-      let fileName, mimeType;
-      if (transcribeModel.includes('gpt-4o')) {
-        fileName = 'audio.webm';
-        mimeType = 'audio/webm';
-        console.log('Using webm format for GPT-4o model');
-      } else {
-        fileName = 'audio.mp3';
-        mimeType = 'audio/mp3';
-        console.log('Using mp3 format for non-GPT-4o model');
-      }
-      const file = await toFile(audioBuffer, fileName, { type: mimeType });
-      console.log(`Sending audio file (${mimeType}) to OpenAI API...`);
-      const response = await openai.audio.transcriptions.create({
-        model: transcribeModel,
-        file: file,
-      });
-      console.log('Transcription response:', response);
-      return { transcription: response.text };
-    } catch (error) {
-      console.error('Transcription API error:', error);
-      return { error: error.message || 'Transcription failed.' };
-    }
+  // --- Logging Handler ---
+  ipcMain.on('renderer:log', (event, { level, message, data }) => {
+    console[level](`[Renderer] ${message}`, data || '');
   });
-
-  ipcMain.handle('openai:detect-language', async (event, text) => {
-    if (!store) return { error: 'Store not initialized' };
-    // ... rest of detect logic using store.get('openai-api-key')
-    const apiKey = store.get('openai-api-key');
-    // ... (keep existing detect logic below)
-    if (!apiKey) {
-      return { error: 'API key not set.' };
-    }
-    if (!text || text.trim().length === 0) {
-      return { error: 'No text provided for language detection.' };
-    }
-
-    try {
-      const openai = new OpenAI({ apiKey });
-      console.log('Sending text to GPT for language detection (JSON mode)...');
-      const systemPrompt = `You are a helpful assistant designed to output JSON.\nIdentify the primary language of the following text.\nRespond with a JSON object containing a single key \"languageCode\"\nwhose value is the ISO 639-1 code for the identified language\n(e.g., \"en\" for English, \"es\" for Spanish, \"ja\" for Japanese).\nIf the language cannot be determined, use \"und\" (Undetermined).`;
-      const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          response_format: { type: "json_object" }, 
-          messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: text }
-          ],
-          max_tokens: 20, 
-          temperature: 0.1, 
-      });
-      console.log('Language detection JSON response content:', response.choices[0]?.message?.content);
-      let languageCode = 'und'; 
-      try {
-          if (response.choices[0]?.message?.content) {
-              const jsonResponse = JSON.parse(response.choices[0].message.content);
-              languageCode = jsonResponse.languageCode || 'und';
-          }
-      } catch (parseError) {
-          console.error('Failed to parse language detection JSON response:', parseError);
-      }
-      return { languageCode: languageCode }; 
-    } catch (error) {
-      console.error('Language detection error:', error);
-      return { error: error.message || 'Language detection failed.' }; 
-    }
-  });
-
-  ipcMain.handle('openai:translate', async (event, text, sourceLangCode, targetLangCode) => {
-    if (!store) return { error: 'Store not initialized' };
-    // ... rest of translate logic using store.get('openai-api-key')
-    const apiKey = store.get('openai-api-key');
-    // ... (keep existing translate logic below)
-    if (!apiKey) {
-      return { error: 'API key not set.' };
-    }
-    if (!text || !sourceLangCode || !targetLangCode || sourceLangCode === targetLangCode) {
-      return { error: 'Missing text, source/target language, or languages are the same.' };
-    }
-
-    try {
-      const openai = new OpenAI({ apiKey });
-      console.log(`Sending text for translation from ${sourceLangCode} to ${targetLangCode}...`);
-      const sourceLangName = LANGUAGES[sourceLangCode] || sourceLangCode;
-      const targetLangName = LANGUAGES[targetLangCode] || targetLangCode;
-      const systemPrompt = `You are a helpful assistant. Translate the following text accurately from ${sourceLangName} to ${targetLangName}. Output only the translated text.`;
-      const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: text }
-          ],
-          temperature: 0.3,
-      });
-      console.log('Translation response:', response);
-      const translatedText = response.choices[0]?.message?.content?.trim() || '';
-      return { translation: translatedText };
-    } catch (error) {
-      console.error('Translation error:', error);
-      return { error: error.message || 'Translation failed.' };
-    }
-  });
-
-  ipcMain.handle('openai:tts', async (event, text, languageCode) => {
-    if (!store) return { error: 'Store not initialized' };
-    // ... rest of tts logic using store.get('openai-api-key') etc.
-    const apiKey = store.get('openai-api-key');
-    const ttsModel = store.get('tts-model', 'tts-1-hd');
-    // ... (keep existing tts logic below)
-    if (!apiKey) {
-      return { error: 'API key not set.' };
-    }
-    if (!text || text.trim().length === 0) {
-      return { error: 'No text provided for speech synthesis.' };
-    }
-
-    try {
-      const openai = new OpenAI({ apiKey });
-      console.log(`Sending text for speech synthesis - Using model: ${ttsModel}, Language code: "${languageCode || 'not provided'}"`);
-      const languageName = languageCode && LANGUAGES[languageCode] 
-                          ? LANGUAGES[languageCode] 
-                          : 'the appropriate language';
-      const instructions = `Speak in ${languageName}`;
-      const response = await openai.audio.speech.create({
-          model: ttsModel,
-          input: text,
-          voice: "onyx",
-          response_format: "mp3",
-          instructions: instructions,
-      });
-      console.log('TTS response received (type):', response.headers.get('content-type'));
-      const audioArrayBuffer = await response.arrayBuffer();
-      return { audioData: audioArrayBuffer };
-    } catch (error) {
-      console.error('TTS error:', error);
-      return { error: error.message || 'Speech synthesis failed.' };
-    }
-  });
-  // ---------------------
 }
 
 // Global error handlers for the main process

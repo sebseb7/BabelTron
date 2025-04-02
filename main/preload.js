@@ -14,22 +14,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setApiKey: (apiKey) => ipcRenderer.invoke('settings:set-api-key', apiKey),
   getAudioDevice: () => ipcRenderer.invoke('settings:get-audio-device'),
   setAudioDevice: (deviceId) => ipcRenderer.invoke('settings:set-audio-device', deviceId),
-  getTtsModel: () => ipcRenderer.invoke('settings:get-tts-model'),
-  setTtsModel: (model) => ipcRenderer.invoke('settings:set-tts-model', model),
-  getTranscribeModel: () => ipcRenderer.invoke('settings:get-transcribe-model'),
-  setTranscribeModel: (model) => ipcRenderer.invoke('settings:set-transcribe-model', model),
   
-  // --- OpenAI --- 
-  transcribeAudio: (audioDataArrayBuffer) => ipcRenderer.invoke('openai:transcribe', audioDataArrayBuffer),
-  detectLanguage: (text) => ipcRenderer.invoke('openai:detect-language', text),
-  translateText: (text, sourceLangCode, targetLangCode) => ipcRenderer.invoke('openai:translate', text, sourceLangCode, targetLangCode),
-  synthesizeSpeech: (text, languageCode) => ipcRenderer.invoke('openai:tts', text, languageCode),
-
   // --- Logging ---
   logger: logger,
-
-  // Example: Handle message back from main if needed
-  // handleUpdate: (callback) => ipcRenderer.on('update-counter', (_event, value) => callback(value))
 });
 
 // Override console methods to also send to main process
