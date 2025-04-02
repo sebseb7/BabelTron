@@ -4,6 +4,20 @@
 
 [![Vibe Status](https://img.shields.io/badge/Vibe%20Status-100%25%20Vibe%20Coded-brightgreen)](https://github.com/sebseb7/BabelTron)
 
+## TODO
+
+### Next Development Steps
+- **Semantic Voice Activity Detection**: Enhance the current VAD system with semantic understanding
+- **Component Refactoring**: 
+  - Create comprehensive refactoring plan
+  - Focus on consistency and reliability
+  - Implement systematic component architecture
+- **Token Counter**: Add functionality to track and display token usage
+
+
+---
+
+
 Voice recorder with transcription, translation, and language detection powered by OpenAI.
 
 ![BabelTron Screenshot](screenshots/babeltron_screenshot.jpg)
