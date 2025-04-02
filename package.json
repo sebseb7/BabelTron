@@ -1,6 +1,6 @@
 {
   "name": "babeltron",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Voice recorder with transcription and language detection",
   "main": "main/main.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "dev": "concurrently \"npm run watch:renderer\" \"electron .\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --mode production --config webpack.config.js && electron-builder --win --publish never",
-    "release": "standard-version --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'",
+    "release": "standard-version --releaseCommitMessageFormat \"chore(release): {{currentTag}} [skip ci]\"",
     "build:prod-no-package": "webpack --mode production --config webpack.config.js"
   },
   "keywords": [],
