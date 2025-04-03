@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.1](https://github.com/sebseb7/BabelTron/compare/v1.3.0...v1.4.1) (2025-04-03)
+
+
+### Features
+
+* **audio:** Implement stereo TTS playback based on language ([a459a32](https://github.com/sebseb7/BabelTron/commit/a459a3291f82be9484609cccaa549a0649f0deb4))
+
+
+### Bug Fixes
+
+* **ui:** Center error test button and prevent overlap ([d619f00](https://github.com/sebseb7/BabelTron/commit/d619f00a01ed45a1eded01bae77090f113ae99c9))
+
 ## [1.4.0](https://github.com/sebseb7/BabelTron/compare/v1.3.0...v1.4.0) (2025-04-02)
 
 
