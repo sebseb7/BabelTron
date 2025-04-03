@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.4.1](https://github.com/sebseb7/BabelTron/compare/v1.3.0...v1.4.1) (2025-04-03)
 
+✨ **DSKY DEBUG MODE UNLOCKED!** ✨
+
+Channeling the spirit of the Apollo Guidance Computer, this release introduces the **Error Test Button** ([ERR TEST] in the bottom center). This seemingly minor addition is a major breakthrough in Vibe Coding debugging!
+
+By allowing us to toggle the visibility of potential error states (like Transcription, Translation, and TTS errors), we can ensure the UI handles them gracefully *without* having to manually force errors during development. This maintains the flow state and keeps the vibes immaculate.
+
+We encourage other Vibe Teams to adopt similar "Display Test" mechanisms. Seeing the unseen is key to UI enlightenment! 🙏🧘‍♂️🚀
 
 ### Features
 
