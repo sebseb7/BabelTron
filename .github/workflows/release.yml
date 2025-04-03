@@ -45,17 +45,21 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
 
-      - name: Create GitHub Release
-        id: create_release
+      - name: Create Release and Upload Assets
         # Only run this step for tag pushes
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.changes }} # Use output from changelog action
+          files: |
+            ./dist/BabelTron Setup ${{ steps.get_version.outputs.VERSION }}.exe
+          # Add other assets here if needed, one per line:
+          # ./dist/BabelTron-${{ github.ref_name }}-mac.zip
+          # ./dist/BabelTron-${{ github.ref_name }}.AppImage
           draft: false
           prerelease: false
 
@@ -66,19 +70,6 @@ jobs:
         # Treat the tag name as a string before calling Substring
         run: echo "VERSION=$(('${{ github.ref_name }}').Substring(1))" >> $env:GITHUB_OUTPUT
         shell: powershell
-
-      - name: Upload Windows Asset
-        # Only run this step for tag pushes
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          # Use the extracted version number without 'v'
-          asset_path: ./dist/BabelTron Setup ${{ steps.get_version.outputs.VERSION }}.exe 
-          asset_name: BabelTron-Setup-${{ steps.get_version.outputs.VERSION }}.exe 
-          asset_content_type: application/vnd.microsoft.portable-executable
 
       # Add similar steps for macOS (.dmg, .zip) and Linux (.AppImage, .deb, .rpm) assets if you build for them
       # Example for macOS zip:
